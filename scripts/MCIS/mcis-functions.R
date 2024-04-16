@@ -2,11 +2,11 @@
 
 ## LOOKUP Table - for converting labels into numerically coded values
 
-lookup <- read_csv("assets/MCIS/mcis-data-labels.csv")
+lookup <- read_csv("MCIS-MCSS-Code/assets/MCIS/mcis-data-labels.csv")
 
 ### variable names
 cols_vec <- unique(lookup$variable_name)
-col_names <- read_csv("assets/MCIS/mcis-col-names49.csv")
+col_names <- read_csv("MCIS-MCSS-Code/assets/MCIS/mcis-col-names49.csv")
 
 ## The excel sheets have extra empty rows in them. Takes in a DF and drops the extra empty rows.
 clean_xlsx <- function(df){
@@ -42,7 +42,7 @@ read_file_mapped <- function(x){
 mcis_clean <- function(year){
   
   file_path <- paste("(MCIS)", year, "Q[1234]", sep = "/")
-  save_dir <- paste0("2023/0-Cleaned Data/MCIS/", year, "/")
+  save_dir <- paste0("data/0-Cleaned Data/MCIS/", year, "/")
   home_dir <- list.dirs(full.names = F)
 
   for (dir in home_dir){
@@ -109,7 +109,7 @@ mcis_clean <- function(year){
         
         cleaned_name <- paste(dir, paste0(str_remove(f, ".xlsx"), ".xlsx"), sep = "/")
         cleaned_split <- str_split_1(cleaned_name, pattern = "/")
-        fin_name <- paste(cleaned_split[1], paste(cleaned_split[2], cleaned_split[5], sep = "__"), sep = "__")
+        fin_name <- paste(cleaned_split[4], paste(cleaned_split[2], cleaned_split[5], sep = "__"), sep = "__")
         cleaned_fname <- paste(save_dir, paste0(fin_name, ".xlsx"), sep = "")
         write.xlsx(final_df, file = cleaned_fname, na = "")
       }

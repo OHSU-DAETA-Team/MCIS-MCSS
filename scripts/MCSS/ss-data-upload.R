@@ -5,38 +5,7 @@ library(stringr)
 library(lubridate)
 library(openxlsx)
 library(redcapAPI)
-
-lookup_ss <- read_csv("mcss_lookup.csv")
-convert_table <- read_csv("mcss_convert.csv")
-col_rename <- read_csv("MCSS_rename.csv")
-
-recode_vals <- function(d){
-  colnames(d) <- dplyr::recode(
-    colnames(d), 
-    !!!setNames(as.character(col_rename$new), col_rename$old)
-  )
-  d
-}
-
-recode_cb <- function(x) {
-  
-  recode_vec <- convert_table |>
-    filter(kind == "checkbox") |>
-    filter(variable == cur_column()) |>
-    pull(label, name = value)
-  
-  dplyr::recode(x, !!!recode_vec)
-}
-
-drop_empty_rows <- function(df){
-  df[rowSums(is.na(df)) != ncol(df),]
-}
-
-read_mapped_csv <- function(x){
-  f <- read_csv(x, col_types = cols(.default = "c"))
-  clean_f <- f |> mutate(quarter = str_extract(x, "Q[1-4]"))
-  clean_f
-}
+source("MCIS-MCSS-Code/scripts/MCSS/ss_functions.R")
 
 ###### Checkbox values #######
 # - race_ethnicity
@@ -49,96 +18,39 @@ read_mapped_csv <- function(x){
 # - barriers
 ##############################
 
-home_dir <- list.dirs(full.names = F)
-
-## create large df
-
-d <- list()
-
 # MCSS
 
 checkbox_vars <- convert_table |> 
   filter(kind == "checkbox")
 
 cb_vars <- unique(checkbox_vars$variable)
-    
-for (dir in home_dir){
-  if(grepl("(SS)/Q[1234]", dir)){
-    for (f in list.files(dir, pattern = ".xlsx")){
-      ss_dir <- paste(dir, f, sep = "/")
-      print(paste("Currently:", ss_dir))
-      file_name <- ss_dir
-      
-      intake <- read_excel(file_name,
-                           skip = 3, 
-                           sheet = 1,
-                           col_names = T,
-                           .name_repair = "unique_quiet",
-                           trim_ws = T) |> 
-        # clean column names
-        clean_names() |> 
-        # drop empty rows
-        drop_empty_rows() |> 
-        # recode values
-        recode_vals() |>
-        mutate(dob = as_date(dob))
-    
-      discharge <- read_excel(file_name, 
-                     skip = 3,
-                     sheet = 2,
-                     col_names = T,
-                     .name_repair = "unique_quiet",
-                     trim_ws = T) |> 
-        clean_names() |>
-        rename_with(.cols = contains("scale"), ~paste0(.x, "_clos")) |>
-        drop_empty_rows() |> 
-        recode_vals() |>
-        mutate(dob = as_date(dob))
-    
-      discharge_in_intake <- discharge[!(names(discharge) %in% names(intake))] |> names()
-      intake_in_discharge <- intake[!(names(intake) %in% names(discharge))] |> names()
-    
-      if(nrow(intake) > 0 & nrow(discharge) == 0){
-        # print(paste("nrow(intake) > 0"))
-        cols_add <- names(discharge |> select(discharge_in_intake))
-        t <- intake |> 
-          mutate(!!!setNames(rep(NA, length(cols_add)), cols_add))
-        
-        } else if (nrow(intake) == 0 & nrow(discharge) > 0) {
-          # print(paste("nrow(discharge) > 0"))
-          cols_add <- names(intake |> select(intake_in_discharge))
-          t <- discharge |> 
-            mutate(!!!setNames(rep(NA, length(cols_add)), cols_add))
-      } else if (nrow(intake) == 0 & nrow(discharge) == 0){
-        break
-        } else {
-          # print(paste("nrow(discharge) > 0 AND nrow(intake) > 0"))
-          t <- intake |>
-            full_join(discharge |> select(c(first_name, last_name, ss_team, dob, discharge_in_intake)), 
-                      by = c("first_name", "last_name", "dob", "ss_team"))
-          }
-      final_df <- t |> 
-        mutate(redcap_repeat_instance = "new")
-      
-      d[[dir]] <- final_df
-      
-      cleaned_name <- paste(dir, paste0(str_remove(f, ".xlsx"), ".csv"), sep = "/")
-      cleaned_split <- str_split_1(cleaned_name, pattern = "/")
-      fin_name <- paste(cleaned_split[3], paste(cleaned_split[1], cleaned_split[4], sep = "__"), sep = "__")
-      cleaned_fname <- paste("0-Cleaned Data-2023/SS/2-pre/", fin_name, sep = "")
-      write_csv(final_df, file = cleaned_fname)
-    }
-  }
-}
 
-tbl <-
-  list.files(path = "0-Cleaned Data-2023/SS/2-pre",
-             pattern = "*.csv", 
+mcss_clean(2023)
+
+intake_fin <-
+  list.files(path = "data/0-Cleaned Data/SS/intake/",
+             pattern = "*.csv",
+             recursive = T,
              full.names = T) |>
   map_df(~read_mapped_csv(.)) |>
-  filter(!is.na(ss_team))
+  filter(!is.na(ss_team)) |>
+  mutate(dob = as_date(dob))
 
-fin <- rowid_to_column(tbl) |> 
+discharge_fin <-
+  list.files(path = "data/0-Cleaned Data/SS/discharge/",
+             pattern = "*.csv",
+             recursive = T, 
+             full.names = T) |>
+  map_df(~read_mapped_csv(.)) |>
+  filter(!is.na(ss_team)) |>
+  mutate(dob = as_date(dob))
+
+t <- intake_fin |> 
+  left_join(discharge_fin,
+            by = c("first_name", "last_name", "dob", "ss_team", "session")) |>
+  rename("quarter" = "quarter.x")
+
+fin <- rowid_to_column(t) |> 
   group_by(first_name, last_name, dob) |>
   mutate(grp_id = cur_group_id()) |>
   ungroup() |>
@@ -146,7 +58,7 @@ fin <- rowid_to_column(tbl) |>
   mutate(record_id = if_else(is.na(first_name), as.integer(paste0(grp_id, rowid)), grp_id)) |>
   mutate(across(all_of(cb_vars), recode_cb))
 
-dummies <- fin |> 
+dummies <- fin |>
   pivot_longer(cols = contains("___"),
                names_to = c("base_name", "f_s_t"), 
                names_pattern = "(.*)___(.*)", 
@@ -158,14 +70,6 @@ dummies <- fin |>
   filter(!is.na(column_number)) |>
   select(-column_number) |> 
   pivot_wider(id_cols = record_id, names_from = new_colname, values_from = val, values_fn = mean)
-
-
-adapt_doug_q2 <- read_csv("0-Cleaned Data-2023/SS/2-pre/Q2__02-Adapt (Douglas)__SS Data Entry Template April-June 2023 (1) (2).csv")
-adapt_doug_q3 <- read_csv("0-Cleaned Data-2023/SS/2-pre/Q3__02-Adapt (Douglas)__SS Data July-September 2023.csv")
-adapt_doug_q4 <- read_csv("0-Cleaned Data-2023/SS/2-pre/Q4__02-Adapt (Douglas)__SS Data Entry Template Q4.2023.csv")
-
-adapt_doug_q2 |>
-  left_join(adapt_doug_q3)
 
 # 
 
@@ -185,47 +89,6 @@ to_upload <- fin |>
 
 View(to_upload)
 
-z <- lapply(to_upload |> select(-contains("date"),
-                              -contains("name"),
-                              -"first_preferred",
-                              -contains("_first"),
-                              -contains("_last"),
-                              -contains("email"),
-                              -contains("phone"),
-                              -"record_id",
-                              -"dob", -"age",
-                              -"grp_id",
-                              -"ss_team",
-                              -"rowid",
-                              -"redcap_repeat_instance",
-                              -"quarter",
-                              -contains("zip")), unique)
-
-# 
-baddie_detector <- function(x, to_upload){
-  to_upload |>
-    filter(!(!!sym(x) %in% convert_table$value)) |>
-    filter(!is.na(!!sym(x))) |>
-    select(ss_team, !!sym(x)) |>
-    rename(value = ss_team) |>
-    inner_join(convert_table |> filter(variable == "ss_team"), by = "value") |>
-    rename(team = label) |>
-    mutate(variable = x,
-           value = !!sym(x)) |>
-    # select(team, var) |>
-    unique()
-}
-
-baddies <- z |>
-  names() |>
-  map(~baddie_detector(., to_upload)) |>
-  map_df(~. |> select(team, variable, value)) |>
-  arrange(team) |>
-  filter(value != "") |>
-  filter(!grepl("___", variable)) |>
-  filter(!grepl("_clos", variable)) |>
-  filter(!grepl("_total", variable))
-
 ## REDCAP
 
 redcap_url <- "https://octri.ohsu.edu/redcap/api/"
@@ -233,19 +96,18 @@ ss_token <- read_csv("~/Desktop/MCIS_MCSS/RCtok.csv") |> filter(project == "ss")
 rcon <- redcapConnection(url=redcap_url,
                          token=ss_token$token[1])
 
-to_upload |> 
-  View()
-
 importRecords(rcon,
               to_upload,
-              overwriteBehavior = c("normal", "overwrite"),
+              overwriteBehavior = c("normal"),
               batch.size = 100,
               returnContent = "auto_ids",
-              #SET RETURNDATA T to CHECK FOR DATA ISSUES
-              returnData = F,
+              #SET RETURNDATA T to CHECK FOR DATA ISSUES; THIS SHOULD BE DEFAULT
+              returnData = T,
               force_auto_number = F)
 
-ss_r <- tibble(exportRecordsTyped(rcon)) |>
+ss_r <- tibble(exportRecordsTyped(rcon))
+
+ss_r <- ss_r |>
   mutate(age = year(as_date("2023-12-31")) - year(as_date(dob)))
 
 # deleteRecords(rcon, unique(ss_r$record_id))
@@ -256,4 +118,4 @@ save_name <-"2023-Q2-Q4-SS-Tableau Data.xlsx"
 
 openxlsx::write.xlsx(ss_r, paste0(save_name))
 
-ss_r |> View()
+# ss_r |> skimr::skim()

@@ -4,7 +4,7 @@ library(janitor)
 library(stringr)
 library(lubridate)
 library(openxlsx)
-source("scripts/MCIS/mcis-functions.R")
+source("MCIS-MCSS-Code/scripts/MCIS/mcis-functions.R")
 
 col_renames <- c(
   "record_id" = "record_id",
@@ -64,7 +64,7 @@ col_types <- c("numeric", "text", "text", "text", "text", "text", "text", "text"
 
 ## Check directories, read xlsx, clean, save as csv.
 
-zip_codes <- read_xlsx("assets/OR Zip Codes and Service Areas and their ORH Urban Rural Frontier Designation 6-7-23.xlsx") |>
+zip_codes <- read_xlsx("MCIS-MCSS-Code/assets/OR Zip Codes and Service Areas and their ORH Urban Rural Frontier Designation 6-7-23.xlsx") |>
   select(`Zip Code`, County) |>
   rename("dispatch_zip" = `Zip Code`,
          "mcis_county" = "County") |>
@@ -79,7 +79,7 @@ mcis_clean(2023)
 # combine separate spreadsheets for final clean
 
 tbl <-
-  list.files(path = "2023/0-Cleaned Data/MCIS",
+  list.files(path = "data/0-Cleaned Data/MCIS",
              pattern = "*.xlsx",
              recursive = T, # set to True to loop through all years
              full.names = T) |>
@@ -640,7 +640,7 @@ fin_tbl <- rowid_to_column(tbl) |>
 
 # Upload to REDCap
 
-fin_tbl |> mutate(across(everything(), as.character)) |> 
+# fin_tbl |> mutate(across(everything(), as.character))
 
 library(redcapAPI)
 
