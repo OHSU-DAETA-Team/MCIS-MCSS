@@ -1,0 +1,1308 @@
+---
+title: "MCIS Data Analysis 2023"
+date: "03-01-24"
+author: "Phil Nguyen"
+format: 
+  html:
+    fig-width: 10
+    fig-height: 7
+  pdf:
+    fig-width: 10
+    fig-height: 7
+editor: visual
+params:
+  program: "All programs"
+execute:
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r}
+cen_api_key <- "72cdafe44b7b6c4b7071e040c446338aeca082e4"
+library(tidymodels)
+library(tidyverse)
+library(tidycensus)
+library(janitor)
+library(stringr)
+library(lubridate)
+library(gt)
+
+d <- readxl::read_xlsx("2023_Q2-Q4_Tableau Data.xlsx") |>
+  mutate(race_ethnicity1 = if_else(
+    race_ethnicity1 == "Indigenous Mexican, Central Americand or South American", 
+    "(**) IM, CM, or SM", 
+    race_ethnicity1),
+    dispatch_requester = if_else(
+      dispatch_requester == "Emergency Department or Hospital Personnel", 
+      "ED or Hospital Personnel", 
+      dispatch_requester),
+    dispatch_requester = if_else(
+      dispatch_requester == "Significant Other/Spouse of Identified Client", 
+      "SO/Spouse of Identified Client", 
+      dispatch_requester))
+
+if (params$program == "All programs") {
+  d <- d
+} else {
+  d <- d |> 
+  filter(mcis_team == params$program)
+}
+```
+
+```{r stat-numbers}
+
+# d |>
+#   group_by(custody) |>
+#   datawizard::data_tabulate("mc_responders_1", collapse = T)
+# 
+# d |>
+#   filter(!is.na(age) & !is.na(disposition)) |>
+#   group_by(disposition) |>
+#   summarize(mean_age = mean(age),
+#             p25 = quantile(age, probs = .25),
+#             p75 = quantile(age, probs = .75))
+```
+
+```{r acs}
+oregon_race_data <- get_acs(geography = "state", 
+                            variables = c("NAME", "B02001_002", "B02001_003", "B02001_004", "B02001_005", "B02001_006", "B02001_007", "B03002_012"),
+                            state = "OR",
+                            survey = "acs5",
+                            year = 2022)
+
+# Estimate!!Total:!!NOT Hispanic or Latino: "B03002_001" 
+
+# Estimate!!Total:!!Hispanic or Latino: "B03002_012"
+
+ord <- oregon_race_data |>
+  mutate(variable = case_when(variable == "B02001_002" ~ "White",
+                              variable == "B02001_003" ~ "African American",
+                              variable == "B02001_004" ~ "Native American",
+                              variable == "B02001_005" ~ "Asian",
+                              variable == "B02001_006" ~ "Pacific Islander",
+                              variable == "B02001_007" ~ "Other",
+                              variable == "B03002_012" ~ "Hispanic or Latino"
+                              )) |>
+  filter(variable != "Total") |>
+  mutate(prop = round(estimate/sum(estimate) * 100, 2))
+```
+
+# `r params$program` (N=`r nrow(d)`) {.unnumbered}
+
+------------------------------------------------------------------------
+
+## CALLER REQUESTING DISPATCH
+
+### Dispatch Location
+
+```{r}
+n2 <- d |>
+  filter(!is.na(dispatch_requester) & !is.na(dispatch_location)) |>
+  count(dispatch_requester, dispatch_location) |>
+  summarize(n=sum(n))
+
+caller_request_counts <- d |>
+  filter(!is.na(dispatch_requester) & !is.na(dispatch_location)) |>
+  count(dispatch_requester) |>
+  mutate(dispatch_requester_numbered = if_else(n < 10, paste0(dispatch_requester, "*"), dispatch_requester))
+
+q1.1 <- d |>
+  filter(!is.na(dispatch_requester) & !is.na(dispatch_location)) |>
+  count(dispatch_requester, dispatch_location) |>
+  left_join(caller_request_counts, by = 'dispatch_requester') |>
+  ggplot(aes(x = fct_reorder(dispatch_requester_numbered, n.y),
+             y = n.x,
+             fill = dispatch_location)) +
+#  # ggtitle(str_glue('Caller Requesting Dispatch by Dispatch Location (n={n2}, * indicates n<10)')) +
+  geom_col(color = 'black') +
+  xlab("Caller Requesting Dispatch") +
+  theme(text = element_text(size = 14)) + 
+  guides(fill=guide_legend(title="Dispatch Location")) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+ggsave("report-images/q1.1.png", width = 10, height = 7)
+
+q1.2 <- d |>
+  filter(!is.na(dispatch_requester) & !is.na(dispatch_location)) |>
+  count(dispatch_requester, dispatch_location) |>
+  left_join(caller_request_counts, by = 'dispatch_requester') |>
+  ggplot(aes(x = fct_reorder(dispatch_requester_numbered, n.y),
+             y = n.x,
+             fill = dispatch_location)) +
+  geom_col(color = 'black', position = "fill") +
+  # # ggtitle(str_glue('Caller Requesting Dispatch by Dispatch Location (n={n2}, * indicates n<10)')) +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Caller Requesting Dispatch") +
+  theme(text = element_text(size = 14)) + 
+  guides(fill=guide_legend(title="Dispatch Location")) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+ggsave("report-images/q1.2.png", width = 10, height = 7)
+# 
+# if(n2 > 100){
+#   q1.2
+# } else {
+#   q1.1
+# }
+
+q1.1
+```
+
+```{r}
+# d |> chisq_test(dispatch_requester ~ dispatch_location)
+```
+
+### Geographical Designation
+
+```{r}
+n1 <- d |>
+  filter(!is.na(dispatch_requester) & !is.na(geo_designation)) |>
+  count(dispatch_requester, geo_designation) |>
+  summarize(n=sum(n))
+
+caller_request_geo_counts <- d |>
+  filter(!is.na(dispatch_requester) & !is.na(geo_designation)) |>
+  count(dispatch_requester) |>
+  mutate(dispatch_requester_numbered = if_else(n < 10, paste0(dispatch_requester, "*"), dispatch_requester))
+
+q2.1 <- d |>
+  filter(!is.na(dispatch_requester) & !is.na(geo_designation)) |>
+  count(dispatch_requester, geo_designation) |>
+  left_join(caller_request_geo_counts, by = 'dispatch_requester') |>
+  ggplot(aes(x = dispatch_requester_numbered, y = n.x, fill = geo_designation)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  xlab("Caller Requesting Dispatch") +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  # ggtitle(str_glue('Caller Requesting Dispatch by Rurality (n={n1}, * indicates n<10)'))
+  guides(fill=guide_legend(title="Geographical Designation"))
+  # coord_flip() +
+  
+
+ggsave("report-images/q2.1.png", width = 10, height = 7)
+
+q2.2 <- d |>
+  filter(!is.na(dispatch_requester) & !is.na(geo_designation)) |>
+  count(dispatch_requester, geo_designation) |>
+  left_join(caller_request_geo_counts, by = 'dispatch_requester') |>
+  ggplot(aes(x = dispatch_requester_numbered, y = n.x, fill = geo_designation)) +
+  geom_col(color = 'black', position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") + 
+  xlab("Caller Requesting Dispatch") +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  # ggtitle(str_glue('Caller Requesting Dispatch by Rurality (n={n1}, * indicates n<10)'))
+  guides(fill=guide_legend(title="Geographical Designation"))
+  # coord_flip() +
+  
+
+ggsave("report-images/q2.2.png", width = 10, height = 7)
+
+# if(n1 > 100){
+#   q2.2
+# } else {
+#  q2.1 
+# }
+
+q2.1
+
+```
+
+```{r}
+# d |> chisq_test(dispatch_requester ~ geo_designation)
+```
+
+```{r}
+
+## Counties with highest proportion of calls
+
+q3 <- d |>
+  count(mcis_team) |>
+  mutate(prop = (n/sum(n))) |>
+  ggplot(aes(x = fct_reorder(mcis_team, n), y = prop, fill = mcis_team)) +
+  geom_col(color = 'black') +
+  xlab("") +
+  ylab('Proportion (%)') +
+  scale_y_continuous(labels = scales::percent) +
+  theme(legend.position = "none") +
+  # ggtitle(str_glue('Proportion of calls by County (n={d |> count(mcis_team) |> summarize(n=sum(n))})')) +
+  coord_flip()
+
+ggsave("report-images/q3.png", width = 10, height = 7)
+# q3
+```
+
+------------------------------------------------------------------------
+
+## RESPONDER ON SCENE
+
+### Race/Ethnicity
+
+```{r}
+n_scene_race <- d |> 
+  filter(!is.na(mc_responders_1) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+  filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+  count(race_ethnicity1, mc_responders_1) |> 
+  summarize(total = sum(n))
+
+n_scene_race_counts <- d |>
+  filter(!is.na(mc_responders_1) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+  filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+  count(race_ethnicity1) |>
+  mutate(race_ethnicity_numbered = if_else(n < 10, paste0(race_ethnicity1, "*"), race_ethnicity1))
+
+q4.1 <- d |> 
+  filter(!is.na(mc_responders_1) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+  filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+  count(race_ethnicity1, mc_responders_1) |>
+  left_join(n_scene_race_counts, by = 'race_ethnicity1') |>
+  ggplot(aes(x = fct_reorder(race_ethnicity_numbered, -n.y), y = n.x, fill = mc_responders_1)) +
+  geom_col(color = 'black') +
+  ylab("n") +
+  xlab("Race/Ethnicity") +
+  guides(fill=guide_legend(title="Responder on Scene")) +
+  theme(text = element_text(size = 14)) + 
+  # ggtitle(str_glue('Responder on scene x Race/Ethnicity (n={n_scene_race}, * indicates n<10)'))
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip()
+
+ggsave("report-images/q4.1.png", width = 10, height = 7)
+
+q4.2 <- d |> 
+  filter(!is.na(mc_responders_1) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+  filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+  count(race_ethnicity1, mc_responders_1) |>
+  left_join(n_scene_race_counts, by = 'race_ethnicity1') |>
+  ggplot(aes(x = fct_reorder(race_ethnicity_numbered, -n.y), y = n.x, fill = mc_responders_1)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Race/Ethnicity\n(**) = Indigenous Mexican, Central American, or South American") +
+  guides(fill=guide_legend(title="Responder on Scene")) +
+  theme(text = element_text(size = 14)) + 
+  # ggtitle(str_glue('Responder on scene x Race/Ethnicity (n={n_scene_race}, * indicates n<10)'))
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip()
+
+ggsave("report-images/q4.2.png", width = 10, height = 7)
+
+# d |> 
+#   filter(!is.na(mc_responders_1) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+#   filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+#   chisq_test(race_ethnicity1 ~ mc_responders_1)
+
+# if(n_scene_race > 100){
+#   q4.2
+# } else {
+#   q4.1
+# }
+
+q4.1
+
+```
+
+### Custody
+
+```{r}
+n_scene_custody <- d |> 
+  filter(!is.na(mc_responders_1) & !is.na(custody)) |>
+  count(custody, mc_responders_1) |>
+  summarize(total = sum(n))
+
+caller_responder_cust_counts <- d |>
+  filter(!is.na(custody) & !is.na(mc_responders_1)) |>
+  count(custody) |>
+  mutate(custody_numbered = if_else(n < 10, paste0(custody, "*"), custody))
+
+q5.1 <- d |> 
+  filter(!is.na(mc_responders_1) & !is.na(custody)) |>
+  count(custody, mc_responders_1) |>
+  left_join(caller_responder_cust_counts, by = 'custody') |>
+  ggplot(aes(x = fct_reorder(custody_numbered, -n.y), y = n.x, fill = mc_responders_1)) +
+  geom_col(color = 'black') +
+  # # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Custody") +
+  guides(fill=guide_legend(title="Responder on Scene")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Responder on scene x Custody (n={n_scene_custody}, * indicates n<10)'))
+
+ggsave("report-images/q5.1.png", width = 10, height = 7)
+
+q5.2 <- d |> 
+  filter(!is.na(mc_responders_1) & !is.na(custody)) |>
+  count(custody, mc_responders_1) |>
+  left_join(caller_responder_cust_counts, by = 'custody') |>
+  ggplot(aes(x = fct_reorder(custody_numbered, -n.y), y = n.x, fill = mc_responders_1)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Custody") +
+  guides(fill=guide_legend(title="Responder on Scene")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Responder on scene x Custody (n={n_scene_custody}, * indicates n<10)'))
+
+ggsave("report-images/q5.2.png", width = 10, height = 7)
+
+# d |> chisq_test(custody ~ mc_responders_1)
+
+# if(n_scene_custody > 100){
+#   q5.2
+# } else {
+#   q5.1
+#   }
+
+q5.1
+```
+
+### Geographic location
+
+```{r}
+n_scene_geo <- d |> 
+  filter(!is.na(mc_responders_1) & !is.na(geo_designation)) |>
+  count(geo_designation, mc_responders_1) |>
+  summarize(total = sum(n))
+
+responder_geo_counts <- d |>
+  filter(!is.na(geo_designation) & !is.na(mc_responders_1)) |>
+  count(geo_designation) |>
+  mutate(geo_numbered = if_else(n < 10, paste0(geo_designation, "*"), geo_designation))
+
+q6.1 <- d |> 
+  filter(!is.na(mc_responders_1) & !is.na(geo_designation)) |>
+  count(geo_designation, mc_responders_1) |>
+  left_join(responder_geo_counts, by = 'geo_designation') |>
+  ggplot(aes(x = fct_reorder(geo_numbered, -n.y), y = n.x, fill = mc_responders_1)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Geographic Location") +
+  guides(fill=guide_legend(title="Responder on Scene")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Responder on scene x Geographic Location (n={n_scene_geo}, * indicates n<10)'))
+
+ggsave("report-images/q6.1.png", width = 10, height = 7)
+
+q6.2 <- d |> 
+  filter(!is.na(mc_responders_1) & !is.na(geo_designation)) |>
+  count(geo_designation, mc_responders_1) |>
+  left_join(responder_geo_counts, by = 'geo_designation') |>
+  ggplot(aes(x = fct_reorder(geo_numbered, -n.y), y = n.x, fill = mc_responders_1)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Geographic Location") +
+  guides(fill=guide_legend(title="Responder on Scene")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Responder on scene x Geographic Location (n={n_scene_geo}, * indicates n<10)'))
+
+ggsave("report-images/q6.2.png", width = 10, height = 7)
+
+# d |> chisq_test(mc_responders_1 ~ geo_designation)
+# if(n_scene_geo > 100){
+#   q6.2
+# } else {
+#   q6.1
+# }
+
+q6.1
+```
+
+### LE on scene
+
+```{r}
+n_disp_le <- d |> 
+  filter(!is.na(reason_for_dispatch1) & !is.na(le_scene)) |>
+  count(reason_for_dispatch1, le_scene) |>
+  summarize(total = sum(n))
+
+le_reason_counts <- d |>
+  filter(!is.na(reason_for_dispatch1) & !is.na(le_scene)) |>
+  count(reason_for_dispatch1) |>
+  mutate(reason_dispatch_numbered = if_else(n < 10, paste0(reason_for_dispatch1, "*"), reason_for_dispatch1))
+
+q7.1 <- d |> 
+  filter(!is.na(reason_for_dispatch1) & !is.na(le_scene)) |>
+  count(le_scene, reason_for_dispatch1) |>
+  left_join(le_reason_counts, by = 'reason_for_dispatch1') |>
+  ggplot(aes(x = fct_reorder(reason_dispatch_numbered, n.y), y = n.x, fill = le_scene)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Reason for Dispatch") +
+  guides(fill=guide_legend(title="LE on Scene")) +
+  theme(text = element_text(size = 14), legend.position = "bottom") + 
+  
+  # theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust=1)) +
+  coord_flip()
+  # ggtitle(str_glue('Reason for Dispatch x LE Scene (n={n_disp_le}, * indicates n<10)'))
+
+ggsave("report-images/q7.1.png", width = 10, height = 7)
+
+q7.2 <- d |> 
+  filter(!is.na(reason_for_dispatch1) & !is.na(le_scene)) |>
+  count(le_scene, reason_for_dispatch1) |>
+  left_join(le_reason_counts, by = 'reason_for_dispatch1') |>
+  ggplot(aes(x = fct_reorder(reason_dispatch_numbered, n.y), y = n.x, fill = le_scene)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Reason for Dispatch") +
+  guides(fill=guide_legend(title="LE on Scene")) +
+  theme(text = element_text(size = 14),  legend.position = "bottom") + 
+  # theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  coord_flip()
+  # ggtitle(str_glue('Reason for Dispatch x LE Scene (n={n_disp_le}, * indicates n<10)'))
+
+ggsave("report-images/q7.2.png", width = 10, height = 7)
+
+# d |> chisq_test(reason_for_dispatch1 ~ le_scene)
+# if(n_disp_le > 100){
+#   q7.2
+# } else {
+#   q7.1
+# }
+
+q7.1
+```
+
+------------------------------------------------------------------------
+
+## REFERRAL SS
+
+### Sexual Orientation
+
+```{r}
+ss_youth <- d |>
+  filter(age < 18 & !is.na(ref_stabilization_services))
+
+n_rss_so <- ss_youth |> 
+  filter(!is.na(sexual_orientation) & sexual_orientation != "Did Not Ask") |>
+  filter(sexual_orientation != "Client Declined to Answer" & sexual_orientation != "Client Unable to Answer") |>
+  count(ref_stabilization_services, sexual_orientation) |>
+  summarize(total = sum(n))
+
+le_reason_counts <- ss_youth |> 
+  filter(!is.na(sexual_orientation) & sexual_orientation != "Did Not Ask") |>
+  filter(sexual_orientation != "Client Declined to Answer" & sexual_orientation != "Client Unable to Answer") |>
+  count(sexual_orientation) |>
+  mutate(sex_o_numbered = if_else(n < 10, paste0(sexual_orientation, "*"), sexual_orientation))
+
+q8.1 <- ss_youth |> 
+  filter(!is.na(sexual_orientation) & sexual_orientation != "Did Not Ask") |>
+  filter(sexual_orientation != "Client Declined to Answer" & sexual_orientation != "Client Unable to Answer") |>
+  count(ref_stabilization_services, sexual_orientation) |>
+  left_join(le_reason_counts, by = "sexual_orientation") |>
+  ggplot(aes(x = fct_reorder(sex_o_numbered, -n.y), y = n.x, fill = ref_stabilization_services)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Sexual Orientation") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Referral SS x Sexual Orientation (n={n_rss_so}, * indicates n<10)'))
+
+ggsave("report-images/q8.1.png", width = 10, height = 7)
+
+q8.2 <- ss_youth |> 
+  filter(!is.na(sexual_orientation) & sexual_orientation != "Did Not Ask") |>
+  filter(sexual_orientation != "Client Declined to Answer" & sexual_orientation != "Client Unable to Answer") |>
+  count(ref_stabilization_services, sexual_orientation) |>
+  left_join(le_reason_counts, by = "sexual_orientation") |>
+  ggplot(aes(x = fct_reorder(sex_o_numbered, -n.y), y = n.x, fill = ref_stabilization_services)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Sexual Orientation") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Referral SS x Sexual Orientation (n={n_rss_so}, * indicates n<10)'))
+
+ggsave("report-images/q8.2.png", width = 10, height = 7)
+
+# ss_youth |> 
+#   filter(!is.na(sexual_orientation) & sexual_orientation != "Did Not Ask") |>
+#   filter(sexual_orientation != "Client Declined to Answer" & sexual_orientation != "Client Unable to Answer") |>
+#   chisq_test(sexual_orientation ~ ref_stabilization_services)
+# if(n_rss_so > 100){
+#   q8.2
+# } else {
+#   q8.1
+# }
+
+q8.1
+```
+
+### Gender
+
+```{r}
+n_rss_gen <- ss_youth |> 
+  filter(!is.na(gender) & gender != "Did Not Ask" & gender != "Client Declined to Answer") |>
+  count(ref_stabilization_services, gender) |>
+  summarize(total = sum(n))
+
+le_gender_counts <- ss_youth |> 
+  filter(!is.na(gender) & gender != "Did Not Ask" & gender != "Client Declined to Answer") |>
+  count(gender) |>
+  mutate(gender_numbered = if_else(n < 10, paste0(gender, "*"), gender))
+
+q8.3 <- ss_youth |> 
+  filter(!is.na(gender) & gender != "Did Not Ask" & gender != "Client Declined to Answer") |>
+  count(ref_stabilization_services, gender) |>
+  left_join(le_gender_counts, by = "gender") |>
+  ggplot(aes(x = fct_reorder(gender, -n.y), y = n.x, fill = ref_stabilization_services)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Gender") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Referral SS x Gender (n={n_rss_gen}, * indicates n<10)'))
+
+ggsave("report-images/q8.3.png", width = 10, height = 7)
+
+q8.4 <- ss_youth |> 
+  filter(!is.na(gender) & gender != "Did Not Ask" & gender != "Client Declined to Answer") |>
+  count(ref_stabilization_services, gender) |>
+  left_join(le_gender_counts, by = "gender") |>
+  ggplot(aes(x = fct_reorder(gender, -n.y), y = n.x, fill = ref_stabilization_services)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Gender") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Referral SS x Gender (n={n_rss_gen}, * indicates n<10)'))
+
+ggsave("report-images/q8.4.png", width = 10, height = 7)
+
+# ss_youth |> 
+#   filter(!is.na(gender) & gender != "Did Not Ask" & gender != "Client Declined to Answer") |>
+#   chisq_test(gender ~ ref_stabilization_services)
+
+# if (n_rss_gen > 100){
+#   q8.4
+# } else {
+#   q8.3
+# }
+
+q8.3
+```
+
+### Race/Ethnicity
+
+```{r}
+n_rss_race <- ss_youth |> 
+  filter(!is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask" & race_ethnicity1 != "Client Unable to Answer" & race_ethnicity1 != "Client Declined to Answer") |>
+  count(ref_stabilization_services, race_ethnicity1) |>
+  summarize(total = sum(n))
+
+n_rss_race_counts <- d |>
+  filter(!is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask" & race_ethnicity1 != "Client Unable to Answer" & race_ethnicity1 != "Client Declined to Answer") |>
+  count(race_ethnicity1) |>
+  mutate(race_ethnicity_numbered = if_else(n < 10, paste0(race_ethnicity1, "*"), race_ethnicity1))
+
+q8.5 <- ss_youth |> 
+  filter(!is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask" & race_ethnicity1 != "Client Unable to Answer" & race_ethnicity1 != "Client Declined to Answer") |>
+  count(ref_stabilization_services, race_ethnicity1) |>
+  left_join(n_rss_race_counts, by = 'race_ethnicity1') |>
+  ggplot(aes(x = fct_reorder(race_ethnicity_numbered, -n.y), y = n.x, fill = ref_stabilization_services)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Race/Ethnicity") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Referral SS x Race/Ethnicity (n={n_rss_race}, * indicates n<10)'))
+
+ggsave("report-images/q8.5.png", width = 10, height = 7)
+
+q8.6 <- ss_youth |> 
+  filter(!is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask" & race_ethnicity1 != "Client Unable to Answer" & race_ethnicity1 != "Client Declined to Answer") |>
+  count(ref_stabilization_services, race_ethnicity1) |>
+  left_join(n_rss_race_counts, by = 'race_ethnicity1') |>
+  ggplot(aes(x = fct_reorder(race_ethnicity_numbered, -n.y), y = n.x, 
+             fill = ref_stabilization_services)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Race/Ethnicity") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Referral SS x Race/Ethnicity (n={n_rss_race}, * indicates n<10)'))
+
+ggsave("report-images/q8.6.png", width = 10, height = 7)
+
+# ss_youth |> 
+#   filter(!is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask" & race_ethnicity1 != "Client Unable to Answer" & race_ethnicity1 != "Client Declined to Answer") |>
+#   chisq_test(race_ethnicity1 ~ ref_stabilization_services)
+
+# if (n_rss_race > 100){
+#   q8.6
+# } else {
+#   q8.5
+# }
+
+q8.5
+```
+
+```{r}
+# recategorize
+q8.7 <- ss_youth |> 
+  filter(!is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask" & race_ethnicity1 != "Client Unable to Answer" & race_ethnicity1 != "Client Declined to Answer") |>
+  mutate(race_red = case_when(race_ethnicity1 == "Other White" ~ "White",
+                              race_ethnicity1 == "Western European" ~ "White",
+                              race_ethnicity1 == "Eastern European" ~ "White",
+                              race_ethnicity1 == "Other Asian" ~ "Asian",
+                              race_ethnicity1 == "Hmong" ~ "Asian",
+                              race_ethnicity1 == "American Indian" ~ "Native American",
+                              race_ethnicity1 == "Other Black" ~ "African American",
+                              race_ethnicity1 == "North African" ~ "African American",
+                              race_ethnicity1 == "Native Hawaiian" ~ "Pacific Islander",
+                              race_ethnicity1 == "Other Pacific Islander" ~ "Pacific Islander",
+                              race_ethnicity1 == "Other Hispanic or Latino/a/x" ~ "Hispanic or Latino",
+                              race_ethnicity1 == "Mexican" ~ "Hispanic or Latino",
+                              .default = race_ethnicity1)) |>
+  count(race_red) |>
+  mutate(MCIS = (n/sum(n)) * 100) |>
+  left_join(ord |> 
+              rename("race_red" = "variable", "ACS" = "prop") |> 
+              select(race_red, ACS), 
+            by = c('race_red')) |>
+  pivot_longer(cols = c("ACS", "MCIS"), names_to = "Dataset") |>
+  ggplot(aes(x = fct_reorder(race_red, -value), y = value, fill = Dataset)) +
+  geom_col(color = 'black', position = "dodge") +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent, ) +
+  ylab("Proportion (%)") +
+  xlab("Race/Ethnicity") +
+  guides(fill=guide_legend(title="Data source")) +
+  theme(text = element_text(size = 14)) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Race of Youth (Y/N to SS Referral) x Race (ACS vs MCIS) (n = {n_rss_race})'))
+
+ggsave("report-images/q8.7.png", width = 10, height = 7)
+
+q8.8 <- ss_youth |> 
+  filter(!is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask" & race_ethnicity1 != "Client Unable to Answer" & race_ethnicity1 != "Client Declined to Answer") |>
+  mutate(race_red = case_when(race_ethnicity1 == "Other White" ~ "White",
+                              race_ethnicity1 == "Western European" ~ "White",
+                              race_ethnicity1 == "Eastern European" ~ "White",
+                              race_ethnicity1 == "Other Asian" ~ "Asian",
+                              race_ethnicity1 == "Hmong" ~ "Asian",
+                              race_ethnicity1 == "American Indian" ~ "Native American",
+                              race_ethnicity1 == "Other Black" ~ "African American",
+                              race_ethnicity1 == "North African" ~ "African American",
+                              race_ethnicity1 == "Native Hawaiian" ~ "Pacific Islander",
+                              race_ethnicity1 == "Other Pacific Islander" ~ "Pacific Islander",
+                              race_ethnicity1 == "Other Hispanic or Latino/a/x" ~ "Other",
+                              race_ethnicity1 == "Mexican" ~ "Other",
+                              .default = race_ethnicity1)) |>
+  count(ref_stabilization_services, race_red) |>
+  ggplot(aes(x = fct_reorder(race_red, -n), y = n, fill = ref_stabilization_services)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Referral SS x Race (reclassified) (n={n_rss_race})'))
+
+ggsave("report-images/q8.8.png", width = 10, height = 7)
+
+# ss_youth |> 
+#   filter(!is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask" & race_ethnicity1 != "Client Unable to Answer" & race_ethnicity1 != "Client Declined to Answer") |>
+#   mutate(race_red = case_when(race_ethnicity1 == "Other White" ~ "White",
+#                               race_ethnicity1 == "Western European" ~ "White",
+#                               race_ethnicity1 == "Eastern European" ~ "White",
+#                               race_ethnicity1 == "Other Asian" ~ "Asian",
+#                               race_ethnicity1 == "Hmong" ~ "Asian",
+#                               race_ethnicity1 == "American Indian" ~ "Native American",
+#                               race_ethnicity1 == "Other Black" ~ "African American",
+#                               race_ethnicity1 == "North African" ~ "African American",
+#                               race_ethnicity1 == "Native Hawaiian" ~ "Pacific Islander",
+#                               race_ethnicity1 == "Other Pacific Islander" ~ "Pacific Islander",
+#                               race_ethnicity1 == "Other Hispanic or Latino/a/x" ~ "Hispanic or Latino",
+#                               race_ethnicity1 == "Mexican" ~ "Hispanic or Latino",
+#                               .default = race_ethnicity1)) |>
+#   filter(race_red != "Asian" & race_red != "Pacific Islander") |>
+#   chisq_test(race_red ~ ref_stabilization_services)
+
+q8.7
+```
+
+### Primary Insurance
+
+```{r}
+n_rss_ins <- ss_youth |> 
+  filter(!is.na(primary_insurance)) |>
+  count(ref_stabilization_services, primary_insurance) |>
+  summarize(total = sum(n))
+
+le_ins_counts <- ss_youth |> 
+  filter(!is.na(primary_insurance)) |>
+  count(primary_insurance) |>
+  mutate(prim_ins_numbered = if_else(n < 10, paste0(primary_insurance, "*"), primary_insurance))
+
+q9.1 <- ss_youth |> 
+  filter(!is.na(primary_insurance)) |>
+  count(ref_stabilization_services, primary_insurance) |>
+  left_join(le_ins_counts, by = "primary_insurance") |>
+  ggplot(aes(x = fct_reorder(prim_ins_numbered, -n.y), y = n.x, fill = ref_stabilization_services)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Primary Insurance") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Referral SS x Primary Insurance (n={n_rss_ins}, * indicates n<10)'))
+
+ggsave("report-images/q9.1.png", width = 10, height = 7)
+
+q9.2 <- ss_youth |> 
+  filter(!is.na(primary_insurance)) |>
+  count(ref_stabilization_services, primary_insurance) |>
+  left_join(le_ins_counts, by = "primary_insurance") |>
+  ggplot(aes(x = fct_reorder(prim_ins_numbered, -n.y), y = n.x, fill = ref_stabilization_services)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Primary Insurance") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Referral SS x Primary Insurance (n={n_rss_ins}, * indicates n<10)'))
+
+ggsave("report-images/q9.2.png", width = 10, height = 7)
+
+# ss_youth |> 
+#   filter(!is.na(primary_insurance)) |>
+#   chisq_test(primary_insurance ~ ref_stabilization_services)
+
+# if(n_rss_ins > 100){
+#   q9.2
+# } else {
+#   q9.1
+# }
+
+q9.1
+```
+
+### Language Need Met
+
+```{r}
+n_lang_refss <- d |> 
+  filter(!is.na(language_need_met) & language_need_met != "N/A" & !is.na(ref_stabilization_services)) |>
+  count(language_need_met, ref_stabilization_services) |>
+  summarize(total = sum(n))
+
+le_lang_counts <- d |> 
+  filter(!is.na(language_need_met) & language_need_met != "N/A" & !is.na(ref_stabilization_services)) |>
+  count(language_need_met) |>
+  mutate(lang_need_numbered = if_else(n < 10, paste0(language_need_met, "*"), language_need_met))
+
+q13.1 <- d |> 
+  filter(!is.na(language_need_met) & language_need_met != "N/A" & !is.na(ref_stabilization_services)) |>
+  count(language_need_met, ref_stabilization_services) |>
+  left_join(le_lang_counts, by = "language_need_met") |>
+  ggplot(aes(fill = ref_stabilization_services, 
+             x = fct_reorder(lang_need_numbered, -n.y), y = n.x)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Language Need Met") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Language Need Met x SS Referral (n={n_lang_refss}, * indicates n<10)'))
+
+ggsave("report-images/q13.1.png", width = 10, height = 7)
+
+q13.2 <- d |> 
+  filter(!is.na(language_need_met) & language_need_met != "N/A" & !is.na(ref_stabilization_services)) |>
+  count(language_need_met, ref_stabilization_services) |>
+  left_join(le_lang_counts, by = "language_need_met") |>
+  ggplot(aes(fill = ref_stabilization_services, 
+             x = fct_reorder(lang_need_numbered, -n.y), y = n.x)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Language Need Met") +
+  guides(fill=guide_legend(title="Referred SS?")) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  guides(fill=guide_legend(title="Referred to SS?"))
+  # coord_flip() +
+  # ggtitle(str_glue('Language Need Met x SS Referral (n={n_lang_refss}, * indicates n<10)'))
+
+ggsave("report-images/q13.2.png", width = 10, height = 7)
+
+# d |>
+#   filter(!is.na(language_need_met) & language_need_met != "N/A" & !is.na(ref_stabilization_services)) |>
+#   chisq_test(ref_stabilization_services ~ language_need_met)
+
+# if(n_lang_refss > 100){
+#   q13.2
+# }else{
+#   q13.1
+# }
+
+q13.1
+
+```
+
+### IDD
+
+```{r}
+idd_ss_n <- d |>
+  filter(!is.na(idd_status) & !is.na(ref_stabilization_services) & age < 18) |>
+  count(idd_status, ref_stabilization_services) |>
+  summarize(sum = sum(n))
+
+re_idd_counts <- d |> 
+  filter(!is.na(idd_status) & !is.na(ref_stabilization_services) & age < 18) |>
+  count(idd_status) |>
+  mutate(idd_numbered = if_else(n < 10, paste0(idd_status, "*"), idd_status))
+
+q15.1 <- d |> 
+  filter(!is.na(idd_status) & !is.na(ref_stabilization_services) & age < 18) |>
+  count(idd_status, ref_stabilization_services) |>
+  left_join(re_idd_counts, by = "idd_status") |>
+  ggplot(aes(fill = ref_stabilization_services, x = fct_reorder(idd_numbered, -n.y), y = n.x)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("IDD Status") +
+  guides(fill=guide_legend(title="Referred to SS?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue("IF IDD, is child being referred to SS? (n={idd_ss_n}, * indicates n<10)"))
+
+ggsave("report-images/q15.1.png", width = 10, height = 7)
+
+q15.2 <- d |>
+  filter(!is.na(idd_status) & !is.na(ref_stabilization_services) & age < 18) |>
+  count(idd_status, ref_stabilization_services) |>
+  left_join(re_idd_counts, by = "idd_status") |>
+  ggplot(aes(fill = ref_stabilization_services, x = fct_reorder(idd_numbered, -n.y), y = n.x)) +
+  geom_col(position = 'fill', color = 'black') +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("IDD Status") +
+  guides(fill=guide_legend(title="Referred to SS?")) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # ggtitle(str_glue("IF IDD, is child being referred to SS? (n={idd_ss_n}, * indicates n<10)"))
+
+ggsave("report-images/q15.2.png", width = 10, height = 7)
+
+# if(idd_ss_n>100){
+#   q15.2
+# } else {
+#   q15.1
+#   }
+
+q15.1
+```
+
+------------------------------------------------------------------------
+
+## LANGUAGE
+
+### Geographical Designation
+
+```{r}
+n_lang_geo <- d |>
+  filter(!is.na(language_need_met) & !is.na(geo_designation) & language_need_met != "N/A") |>
+  count(language_need_met, geo_designation) |>
+  summarize(total = sum(n))
+
+q10.1 <- d |> 
+  filter(!is.na(language_need_met) & !is.na(geo_designation) & language_need_met != "N/A") |>
+  count(language_need_met, geo_designation) |>
+  ggplot(aes(x = fct_reorder(geo_designation, -n), y = n, fill = language_need_met)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Geographical Designation") +
+  guides(fill=guide_legend(title="Language Need Met?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Language Need Met x Geographical Designation (n={n_lang_geo})'))
+
+ggsave("report-images/q10.1.png", width = 10, height = 7)
+
+q10.2 <- d |> 
+  filter(!is.na(language_need_met) & !is.na(geo_designation) & language_need_met != "N/A") |>
+  count(language_need_met, geo_designation) |>
+  ggplot(aes(x = fct_reorder(geo_designation, n), y = n, fill = language_need_met)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Geographical Designation") +
+  guides(fill=guide_legend(title="Language Need Met?")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Language Need Met x Geographical Designation (n={n_lang_geo})'))
+
+ggsave("report-images/q10.2.png", width = 10, height = 7)
+
+# d |> 
+#   filter(!is.na(language_need_met) & !is.na(geo_designation) & language_need_met != "N/A") |>
+#   chisq_test(geo_designation ~ language_need_met)
+
+# if(n_lang_geo>100){
+#   q10.2
+# } else {
+#   q10.1
+#   }
+
+q10.1
+```
+
+### Hour of Dispatch?
+
+```{r}
+n_lang_datetime <- d |>
+  filter(!is.na(language_need_met) & language_need_met != "N/A") |>
+  count(request_datetime) |>
+  summarize(sum = sum(n))
+
+# d |> count(language_need_met)
+
+q11 <- d |>
+  filter(!is.na(language_need_met) & language_need_met != "N/A") |>
+  ggplot(aes(x = hour(request_datetime), fill = language_need_met)) +
+  geom_density(alpha = 0.5) +
+  xlab("Hour (Military Time)") +
+  guides(fill=guide_legend(title="Language Need Met?"))
+  # ggtitle(str_glue("Language Need Met and Hour of Dispatch Request (n={n_lang_datetime})"))
+
+ggsave("report-images/q11.png", width = 10, height = 7)
+q11
+```
+
+```{r}
+lang_not_met_n <- d |>
+  filter(!is.na(language_need_met) & language_need_met == "No" & !is.na(client_language)) |>
+  filter(client_language != "English") |>
+  count(client_language) |>
+  summarize(sum = sum(n))
+
+q12 <- d |>
+  filter(!is.na(language_need_met) & language_need_met == "No" & !is.na(client_language)) |>
+  filter(client_language != "English") |>
+  count(client_language) |>
+  ggplot(aes(x = fct_reorder(client_language, -n), y = n, fill = client_language)) +
+  geom_col(color = 'black') +
+  theme(legend.position = "none") +
+  xlab("Language") +
+  ylab("count") +
+  theme(text = element_text(size = 14)) + 
+  # ggtitle(str_glue("Languages where Language Need is Not Met (n={lang_not_met_n})")) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) 
+
+ggsave("report-images/q12.png", width = 10, height = 7)
+q12
+```
+
+```{r}
+# 
+# # LANGUAGE NEED NOT MET and CLIENT_LANGUAGE = ENGLISH
+# d |>
+#   filter(!is.na(language_need_met) & language_need_met == "No" & !is.na(client_language)) |>
+#   filter(client_language == "English") |>
+#   select(mcis_team, client_language, language_need_met) |>
+#   #count(mcis_team) |>
+#   #arrange(desc(n)) |>
+#   View()
+```
+
+## WHEN RESPONDERS GOING TO ED, ARE INDIVIDUALS BEING PLACED ON HOSPITAL HOLD?
+
+```{r}
+n_custody_ed <- d |> 
+  filter(!is.na(dispatch_location) & !is.na(custody) & dispatch_location == "Emergency Department (ED)") |>
+  count(custody) |>
+  summarize(sum = sum(n))
+
+cust_ed_counts <- d |> 
+  filter(!is.na(dispatch_location) & !is.na(custody) & dispatch_location == "Emergency Department (ED)") |>
+  count(custody) |>
+  mutate(cust_numbered = if_else(n < 10, paste0(custody, "*"), custody))
+
+q14 <- d |> 
+  filter(!is.na(dispatch_location) & !is.na(custody) & dispatch_location == "Emergency Department (ED)") |>
+  count(custody) |>
+  left_join(cust_ed_counts, by = "custody") |>
+  ggplot(aes(x = fct_reorder(cust_numbered, -n.y), y = n.x, fill = cust_numbered)) +
+  geom_col(color = 'black') +
+  xlab("Custody") +
+  ylab("n") +
+  theme(legend.position = "none") +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # ggtitle(str_glue("For responses to ED, are these individuals being placed on Hospital Hold?\n(n={n_custody_ed}, * indicates n<10)"))
+
+ggsave("report-images/q14.png", width = 10, height = 7)
+  
+# Relative to other forms of other custody, no
+q14
+```
+
+## DEMOGRAPHICS x DISPOSITION
+
+### Race/ethnicity
+
+```{r}
+n_re_dis <- d |> 
+  filter(!is.na(disposition) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+  filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+  count(race_ethnicity1, disposition) |> 
+  summarize(total = sum(n))
+
+n_re_dis_counts <- d |>
+  filter(!is.na(disposition) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+  filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+  count(race_ethnicity1) |> 
+  mutate(race_ethnicity_numbered = if_else(n < 10, paste0(race_ethnicity1, "*"), race_ethnicity1))
+
+q16.1 <- d |> 
+  filter(!is.na(disposition) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+  filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+  count(race_ethnicity1, disposition) |> 
+  left_join(n_re_dis_counts, by = 'race_ethnicity1') |>
+  ggplot(aes(x = fct_reorder(race_ethnicity_numbered, -n.y), y = n.x, fill = disposition)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Race/Ethnicity") +
+  guides(fill=guide_legend(title="Disposition")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Disposition x Race/Ethnicity (n={n_re_dis}, * indicates n<10)'))
+
+ggsave("report-images/q16.1.png", width = 10, height = 7)
+
+q16.2 <- d |> 
+  filter(!is.na(disposition) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+  filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+  count(race_ethnicity1, disposition) |> 
+  left_join(n_re_dis_counts, by = 'race_ethnicity1') |>
+  ggplot(aes(x = fct_reorder(race_ethnicity_numbered, -n.y), y = n.x, fill = disposition)) +
+  geom_col(position = 'fill', color = 'black') +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Race/Ethnicity") +
+  guides(fill=guide_legend(title="Disposition")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  # coord_flip() +
+  # ggtitle(str_glue('Disposition x Race/Ethnicity (n={n_re_dis}, * indicates n<10)'))
+
+ggsave("report-images/q16.2.png", width = 10, height = 7)
+
+# d |> 
+#   filter(!is.na(disposition) & !is.na(race_ethnicity1) & race_ethnicity1 != "Did Not Ask") |>
+#   filter(race_ethnicity1 != "Client Declined to Answer" & race_ethnicity1 != "Client Unable to Answer") |>
+#   chisq_test(race_ethnicity1 ~ disposition)
+
+# if(n_re_dis>100){
+#   q16.2
+# }else{
+#   q16.1
+# }
+
+q16.1
+```
+
+### Age
+
+```{r}
+n_age_dis <- d |>
+  filter(!is.na(disposition) & !is.na(age) & age <= 100) |>
+  count(age, disposition) |>
+  summarize(total = sum(n))
+
+age_dis_counts <- d |> 
+  filter(!is.na(disposition) & !is.na(age) & age <= 100) |>
+  count(disposition) |>
+  mutate(dis_numbered = if_else(n < 10, paste0(disposition, "*"), disposition))
+
+q17.1 <- d |> 
+  filter(!is.na(disposition) & !is.na(age) & age <= 100) |>
+  left_join(age_dis_counts, by = "disposition") |> 
+  ggplot(aes(x = fct_reorder(dis_numbered, age), y = age, fill = dis_numbered)) +
+  geom_boxplot() +
+  ylab("Age") +
+  xlab("Disposition") +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # coord_flip() +
+  theme(legend.position = "none") + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  theme(text = element_text(size = 14))
+  # ggtitle(str_glue("Age x Disposition (n={n_age_dis}, * indicates n<10)"))
+
+ggsave("report-images/q17.1.png", width = 10, height = 7)
+
+# observed_stat <- d |> 
+#   filter(!is.na(disposition) & !is.na(age) & age <= 100) |>
+#   specify(age ~ disposition) |>
+#   hypothesize(null = "independence") |>
+#   calculate(stat = "F")
+# 
+# null_dist <- d |> 
+#   filter(!is.na(disposition) & !is.na(age) & age <= 100) |>
+#   specify(age ~ disposition) |>
+#   hypothesize(null = "independence") |>
+#   generate(reps = 1000, type = "permute") |>
+#   calculate(stat = "F")
+# 
+# null_dist |>
+#   get_p_value(obs_stat = observed_stat,
+#               direction = "greater")
+
+q17.1
+```
+
+## REASON FOR DISPATCH x DISPOSITION
+
+```{r}
+n_reason_dis <- d |> 
+  filter(!is.na(disposition) & !is.na(reason_for_dispatch1)) |>
+  count(reason_for_dispatch1, disposition) |> 
+  summarize(total = sum(n))
+
+n_reason_dis_counts <- d |>
+  filter(!is.na(disposition) & !is.na(reason_for_dispatch1)) |>
+  count(reason_for_dispatch1) |> 
+  mutate(reason_for_dispatch1_numbered = if_else(n < 10, paste0(reason_for_dispatch1, "*"), reason_for_dispatch1))
+
+q18.1 <- d |> 
+  filter(!is.na(disposition) & !is.na(reason_for_dispatch1)) |>
+  count(reason_for_dispatch1, disposition) |> 
+  left_join(n_reason_dis_counts, by = 'reason_for_dispatch1') |>
+  ggplot(aes(x = fct_reorder(reason_for_dispatch1_numbered, n.y), y = n.x, fill = disposition)) +
+  geom_col(color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  # scale_y_continuous(labels = scales::percent) +
+  ylab("n") +
+  xlab("Reason for Dispatch") +
+  guides(fill=guide_legend(title="Disposition")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 1, hjust=1)) +
+  coord_flip()
+  # ggtitle(str_glue('Disposition x Reason for Dispatch (n={n_reason_dis}, * indicates n<10)'))
+
+ggsave("report-images/q18.1.png", width = 10, height = 7)
+
+q18.2 <- d |> 
+  filter(!is.na(disposition) & !is.na(reason_for_dispatch1)) |>
+  count(reason_for_dispatch1, disposition) |> 
+  left_join(n_reason_dis_counts, by = 'reason_for_dispatch1') |>
+  ggplot(aes(x = fct_reorder(reason_for_dispatch1_numbered, n.y), y = n.x, fill = disposition)) +
+  geom_col(position = 'fill', color = 'black') +
+  # scale_fill_brewer(palette = "Pastel1") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("Proportion (%)") +
+  xlab("Reason for Dispatch") +
+  guides(fill=guide_legend(title="Disposition")) +
+  theme(text = element_text(size = 14)) + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 1, hjust=1)) +
+  coord_flip()
+  # ggtitle(str_glue('Disposition x Reason for Dispatch (n={n_reason_dis}, * indicates n<10)'))
+
+ggsave("report-images/q18.2.png", width = 10, height = 7)
+# 
+# d |> 
+#   filter(!is.na(disposition) & !is.na(reason_for_dispatch1)) |>
+#   chisq_test(reason_for_dispatch1 ~ disposition)
+
+# if(n_reason_dis>100){
+#   q18.2
+# }else{
+#   q18.1
+#   }
+
+q18.1
+```
+
+## COUNTIES OF YOUTH ENROLLED TO SS
+
+```{r}
+
+n_19 <- d |>
+  filter(enr_stabilization_services == "Yes") |>
+  count(mcis_team) |>
+  summarize(n = sum(n))
+
+q19 <- d |>
+  filter(enr_stabilization_services == "Yes") |>
+  count(mcis_team) |>
+  ggplot(aes(x = fct_reorder(mcis_team, n), y = n, fill = mcis_team)) +
+  geom_col(col = 'black') +
+  xlab("MCIS Team") +
+  ylab("n") +
+  theme(legend.position = "none") +
+  theme(text = element_text(size = 14)) + 
+  # ggtitle(str_glue('MCIS County x Youth enrolled in SS (n={n_19})')) +
+  coord_flip()
+
+ggsave("report-images/q19.png", width = 10, height = 7)
+q19
+```

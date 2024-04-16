@@ -1,0 +1,17 @@
+"0","d |>
+  filter(!is.na(dispatch_to_arrival) & dispatch_to_arrival >= 0 & dispatch_to_arrival < 300) |>
+  filter(!is.na(dispatch_location)) |>
+  group_by(mcis_team) |>
+  summarize(mean_disp_to_arr = mean(dispatch_to_arrival)) |>
+  ungroup() |>
+  left_join(d |> select(mcis_team, geo_designation), by = ""mcis_team"") |> 
+  arrange(mean_disp_to_arr) |>
+  ggplot(aes(x = reorder(mcis_team, -mean_disp_to_arr), y = mean_disp_to_arr)) +
+  geom_point() +
+  xlab('Minutes') + ylab('') +
+  theme(legend.title=element_blank()) +
+  scale_y_continuous(breaks = c(0, 10, 20, 30, 40, 50, 60)) +
+  ggtitle(""Mean Dispatch to Arrival Time by County"") +
+  coord_flip()
+"
+"2","Warning: Each row in `x` is expected to match at most 1 row in `y`."

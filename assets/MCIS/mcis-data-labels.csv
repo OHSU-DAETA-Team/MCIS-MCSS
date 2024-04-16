@@ -1,0 +1,432 @@
+variable_name,value,label,type
+mcis_team,1,Adapt (Curry),factor
+mcis_team,2,Adapt (Douglas),factor
+mcis_team,3,Benton County Health Department,factor
+mcis_team,4,Best Care (Crook County),factor
+mcis_team,5,Best Care (Jefferson County),factor
+mcis_team,6,Center for Human Development,factor
+mcis_team,7,"Clackamas County Health, Housing & Human Services",factor
+mcis_team,8,Clatsop Behavioral Health,factor
+mcis_team,9,Columbia Community Mental Health,factor
+mcis_team,10,Community Counseling Solutions (Gilliam),factor
+mcis_team,11,Community Counseling Solutions (Grant),factor
+mcis_team,12,Community Counseling Solutions (Morrow),factor
+mcis_team,13,Community Counseling Solutions (Umatilla),factor
+mcis_team,14,Community Counseling Solutions (Wheeler),factor
+mcis_team,15,Coos Health and Wellness,factor
+mcis_team,16,Deschutes Behavioral Health,factor
+mcis_team,17,Jackson County Health & Human Services,factor
+mcis_team,18,Klamath Basin Behavioral Health,factor
+mcis_team,19,Lake District Behavioral Health,factor
+mcis_team,20,Lane County Behavioral Health Services (WLCR),factor
+mcis_team,21,Lane County Behavioral Health Services (Child Center),factor
+mcis_team,22,Lane County Behavioral Health Services (White Bird),factor
+mcis_team,23,"Lifeways, Inc.",factor
+mcis_team,24,Lincoln County Health and Human Services,factor
+mcis_team,25,Linn County Mental Health,factor
+mcis_team,26,Marion County Health Department,factor
+mcis_team,27,Mid-Columbia Center for Living,factor
+mcis_team,28,Multnomah County Behavioral Health Division,factor
+mcis_team,29,"New Directions NW, Inc.",factor
+mcis_team,30,Options for Southern Oregon,factor
+mcis_team,31,Polk County Addiction and Mental Health Services,factor
+mcis_team,32,Symmetry Care,factor
+mcis_team,33,Tillamook Behavioral Health,factor
+mcis_team,34,Wallowa Valley Center for Wellness,factor
+mcis_team,35,Warm Springs,factor
+mcis_team,36,Washington County Health & Human Services,factor
+mcis_team,37,Yamhill County Health and Human Services,factor
+mc_responders_1,1,QMHP,factor
+mc_responders_1,2,QMHA,factor
+mc_responders_1,3,Peer,factor
+mc_responders_1,4,CADC,factor
+mc_responders_1,5,Medical Provider,factor
+mc_responders_1,6,Other,factor
+mc_responders_2,1,QMHP,factor
+mc_responders_2,2,QMHA,factor
+mc_responders_2,3,Peer,factor
+mc_responders_2,4,CADC,factor
+mc_responders_2,5,Medical Provider,factor
+mc_responders_2,6,Other,factor
+mc_responders_2,7,None,factor
+endpoint_dispatch,1,Engaged client,factor
+endpoint_dispatch,2,Client declined to engage,factor
+endpoint_dispatch,3,Unable to locate client,factor
+endpoint_dispatch,4,Did not make contact due to safety issues,factor
+endpoint_dispatch,5,Dispatch cancelled before arrival,factor
+endpoint_dispatch,6,Other,factor
+repeat_dispatch,1,"No, update demographic information",factor
+repeat_dispatch,2,"Yes, update demographic information",factor
+repeat_dispatch,3,"Yes, skip demographic information",factor
+repeat_dispatch,4,"Unknown, update demographic information",factor
+gender,1,Male,factor
+gender,2,Female,factor
+gender,3,Other,factor
+gender,4,Client Unable to Answer,factor
+gender,5,Client Declined to Answer,factor
+gender,6,Did Not Ask,factor
+sexual_orientation,1,Same-Gender Loving,factor
+sexual_orientation,2,Same-Sex Loving,factor
+sexual_orientation,3,Lesbian,factor
+sexual_orientation,4,Gay,factor
+sexual_orientation,5,Bisexual,factor
+sexual_orientation,6,Pansexual,factor
+sexual_orientation,7,Straight,factor
+sexual_orientation,8,Asexual,factor
+sexual_orientation,9,Queer,factor
+sexual_orientation,10,Questioning,factor
+sexual_orientation,11,Not Listed,factor
+sexual_orientation,12,Client Unable to Answer,factor
+sexual_orientation,13,Client Declined to Answer,factor
+sexual_orientation,14,Did Not Ask,factor
+race_ethnicity1,1,Central American,factor
+race_ethnicity1,2,Mexican,factor
+race_ethnicity1,3,South American,factor
+race_ethnicity1,4,Other Hispanic or Latino/a/x,factor
+race_ethnicity1,5,Chamoru (Chamorro),factor
+race_ethnicity1,6,Marshalles,factor
+race_ethnicity1,7,Communities of the Micronesian Regions,factor
+race_ethnicity1,8,Native Hawaiian,factor
+race_ethnicity1,9,Samoan,factor
+race_ethnicity1,10,Other Pacific Islander,factor
+race_ethnicity1,11,Eastern European,factor
+race_ethnicity1,12,Slavic,factor
+race_ethnicity1,13,Western European,factor
+race_ethnicity1,14,Other White,factor
+race_ethnicity1,15,American Indian,factor
+race_ethnicity1,16,Alaska Native,factor
+race_ethnicity1,17,"Candian Inuit, Metis or First Nation",factor
+race_ethnicity1,18,"Indigenous Mexican, Central Americand or South American",factor
+race_ethnicity1,19,African American,factor
+race_ethnicity1,20,Afro-Carribean,factor
+race_ethnicity1,21,Ethiopian,factor
+race_ethnicity1,22,Somali,factor
+race_ethnicity1,23,Other African (Black),factor
+race_ethnicity1,24,Other Black,factor
+race_ethnicity1,25,Middle Eastern,factor
+race_ethnicity1,26,North African,factor
+race_ethnicity1,27,Asian Indian,factor
+race_ethnicity1,28,Cambodian,factor
+race_ethnicity1,29,Chinese,factor
+race_ethnicity1,30,Communities of Myanmar,factor
+race_ethnicity1,31,Filipino/a,factor
+race_ethnicity1,32,Hmong,factor
+race_ethnicity1,33,Japanese,factor
+race_ethnicity1,34,Korean,factor
+race_ethnicity1,35,Laotian,factor
+race_ethnicity1,36,South Asian,factor
+race_ethnicity1,37,Vietnamese,factor
+race_ethnicity1,38,Other Asian,factor
+race_ethnicity1,39,Other,factor
+race_ethnicity1,40,Client Unable to Answer,factor
+race_ethnicity1,41,Client Declined to Answer,factor
+race_ethnicity1,42,Did Not Ask,factor
+race_ethnicity2,1,Central American,factor
+race_ethnicity2,2,Mexican,factor
+race_ethnicity2,3,South American,factor
+race_ethnicity2,4,Other Hispanic or Latino/a/x,factor
+race_ethnicity2,5,Chamoru (Chamorro),factor
+race_ethnicity2,6,Marshalles,factor
+race_ethnicity2,7,Communities of the Micronesian Regions,factor
+race_ethnicity2,8,Native Hawaiian,factor
+race_ethnicity2,9,Samoan,factor
+race_ethnicity2,10,Other Pacific Islander,factor
+race_ethnicity2,11,Eastern European,factor
+race_ethnicity2,12,Slavic,factor
+race_ethnicity2,13,Western European,factor
+race_ethnicity2,14,Other White,factor
+race_ethnicity2,15,American Indian,factor
+race_ethnicity2,16,Alaska Native,factor
+race_ethnicity2,17,"Candian Inuit, Metis or First Nation",factor
+race_ethnicity2,18,"Indigenous Mexican, Central Americand or South American",factor
+race_ethnicity2,19,African American,factor
+race_ethnicity2,20,Afro-Carribean,factor
+race_ethnicity2,21,Ethiopian,factor
+race_ethnicity2,22,Somali,factor
+race_ethnicity2,23,Other African (Black),factor
+race_ethnicity2,24,Other Black,factor
+race_ethnicity2,25,Middle Eastern,factor
+race_ethnicity2,26,North African,factor
+race_ethnicity2,27,Asian Indian,factor
+race_ethnicity2,28,Cambodian,factor
+race_ethnicity2,29,Chinese,factor
+race_ethnicity2,30,Communities of Myanmar,factor
+race_ethnicity2,31,Filipino/a,factor
+race_ethnicity2,32,Hmong,factor
+race_ethnicity2,33,Japanese,factor
+race_ethnicity2,34,Korean,factor
+race_ethnicity2,35,Laotian,factor
+race_ethnicity2,36,South Asian,factor
+race_ethnicity2,37,Vietnamese,factor
+race_ethnicity2,38,Other Asian,factor
+race_ethnicity2,39,Other,factor
+race_ethnicity2,40,Client Unable to Answer,factor
+race_ethnicity2,41,Client Declined to Answer,factor
+race_ethnicity2,42,Did Not Ask,factor
+race_ethnicity3,1,Central American,factor
+race_ethnicity3,2,Mexican,factor
+race_ethnicity3,3,South American,factor
+race_ethnicity3,4,Other Hispanic or Latino/a/x,factor
+race_ethnicity3,5,Chamoru (Chamorro),factor
+race_ethnicity3,6,Marshalles,factor
+race_ethnicity3,7,Communities of the Micronesian Regions,factor
+race_ethnicity3,8,Native Hawaiian,factor
+race_ethnicity3,9,Samoan,factor
+race_ethnicity3,10,Other Pacific Islander,factor
+race_ethnicity3,11,Eastern European,factor
+race_ethnicity3,12,Slavic,factor
+race_ethnicity3,13,Western European,factor
+race_ethnicity3,14,Other White,factor
+race_ethnicity3,15,American Indian,factor
+race_ethnicity3,16,Alaska Native,factor
+race_ethnicity3,17,"Candian Inuit, Metis or First Nation",factor
+race_ethnicity3,18,"Indigenous Mexican, Central Americand or South American",factor
+race_ethnicity3,19,African American,factor
+race_ethnicity3,20,Afro-Carribean,factor
+race_ethnicity3,21,Ethiopian,factor
+race_ethnicity3,22,Somali,factor
+race_ethnicity3,23,Other African (Black),factor
+race_ethnicity3,24,Other Black,factor
+race_ethnicity3,25,Middle Eastern,factor
+race_ethnicity3,26,North African,factor
+race_ethnicity3,27,Asian Indian,factor
+race_ethnicity3,28,Cambodian,factor
+race_ethnicity3,29,Chinese,factor
+race_ethnicity3,30,Communities of Myanmar,factor
+race_ethnicity3,31,Filipino/a,factor
+race_ethnicity3,32,Hmong,factor
+race_ethnicity3,33,Japanese,factor
+race_ethnicity3,34,Korean,factor
+race_ethnicity3,35,Laotian,factor
+race_ethnicity3,36,South Asian,factor
+race_ethnicity3,37,Vietnamese,factor
+race_ethnicity3,38,Other Asian,factor
+race_ethnicity3,39,Other,factor
+race_ethnicity3,40,Client Unable to Answer,factor
+race_ethnicity3,41,Client Declined to Answer,factor
+race_ethnicity3,42,Did Not Ask,factor
+idd_status,1,Yes,factor
+idd_status,2,No,factor
+idd_status,3,Unable to Determine,factor
+military_status,Yes,"Yes, Veteran no specified Branch of Service",factor
+military_status,YVA,"Yes, Veteran and Current or Former Active Duty Military",factor
+military_status,YVG,"Yes, Veteran and Current or Former Guard/Reserve Military",factor
+military_status,NG,"No, but Current or Former Guard/Reserve Military",factor
+military_status,No,No Service History,factor
+military_status,1,Client Unable to Answer,factor
+military_status,2,Client Declined to Answer,factor
+military_status,3,Did Not Ask,factor
+military_status,UNK,Unknown (do not use),factor
+dhs_status,1,Yes,factor
+dhs_status,2,No,factor
+dhs_status,3,Client Unable to Answer,factor
+dhs_status,4,Client Declined to Answer,factor
+dhs_status,5,Did Not Ask,factor
+living_situation,1,Transient/Homeless,factor
+living_situation,2,Foster Home,factor
+living_situation,25,Other DHS Setting,factor
+living_situation,3,Residential Facility,factor
+living_situation,4,Jail,factor
+living_situation,5,Prison,factor
+living_situation,6,Room and Board,factor
+living_situation,7,Supported Housing,factor
+living_situation,8,Supportive Housing (scattered site),factor
+living_situation,9,Supportive Housing (congregate site),factor
+living_situation,10,Alcohol and Drug Free Housing,factor
+living_situation,26,Assisted Living Facility,factor
+living_situation,11,Oxford Home,factor
+living_situation,13,Private Residence (at home),factor
+living_situation,14,Private Residence (with relative),factor
+living_situation,15,Private Residence (with non-relative),factor
+living_situation,12,Other Private Residence,factor
+living_situation,16,Residential Facility (SUD),factor
+living_situation,17,Proctor/Private Foster Care Residential Facility (BRS),factor
+living_situation,18,Residential Facility (CSEC),factor
+living_situation,19,Residential Facility (PRTS),factor
+living_situation,20,Residential Facility (SCIP/SAIP),factor
+living_situation,21,Residential Facility (SRTF for YAT),factor
+living_situation,22,Residential Facility (RTH for YAT),factor
+living_situation,23,Secure Residential (SRTF Adult),factor
+living_situation,24,Residential Sub-Acute Care Facility,factor
+living_situation,27,Client Unable to Answer,factor
+living_situation,28,Client Declined to Answer,factor
+living_situation,29,Did Not Ask,factor
+living_situation,99,Not Listed,factor
+primary_insurance,2,Oregon Medicare,factor
+primary_insurance,3,Oregon Medicaid,factor
+primary_insurance,1,Private/Commercial,factor
+primary_insurance,6,Tribal Insurance/Indian Health Services,factor
+primary_insurance,7,Tricare/VA,factor
+primary_insurance,8,Other state Medicare/Medicaid,factor
+primary_insurance,5,Uninsured,factor
+primary_insurance,4,Not Listed,factor
+primary_insurance,10,Client Unable to Answer,factor
+primary_insurance,11,Client Declined to Answer,factor
+primary_insurance,12,Did Not Ask,factor
+primary_insurance,9,Unknown (do not use),factor
+second_insurance,13,No Secondary Insurance,factor
+second_insurance,2,Oregon Medicare,factor
+second_insurance,3,Oregon Medicaid,factor
+second_insurance,1,Private/Commercial,factor
+second_insurance,6,Tribal Insurance/Indian Health Services,factor
+second_insurance,7,Tricare/VA,factor
+second_insurance,8,Other state Medicare/Medicaid,factor
+second_insurance,5,Uninsured,factor
+second_insurance,4,Not Listed,factor
+second_insurance,10,Client Unable to Answer,factor
+second_insurance,11,Client Declined to Answer,factor
+second_insurance,12,Did Not Ask,factor
+second_insurance,9,Unknown (do not use),factor
+dispatch_requester,1,Identified Client,factor
+dispatch_requester,2,Significant Other/Spouse of Identified Client,factor
+dispatch_requester,3,Other Family of Identified Client,factor
+dispatch_requester,4,Peer/Friend of Identified Client,factor
+dispatch_requester,5,Bystander/Community Member,factor
+dispatch_requester,6,988 Dispatcher,factor
+dispatch_requester,7,911 Dispatcher,factor
+dispatch_requester,8,Emergency Department or Hospital Personnel,factor
+dispatch_requester,9,Law Enforcement Officer/Dispatch,factor
+dispatch_requester,10,EMS Personnel/Dispatch,factor
+dispatch_requester,11,Other,factor
+dispatch_location,1,Private Residence,factor
+dispatch_location,2,Community/Public Setting,factor
+dispatch_location,3,Reservation,factor
+dispatch_location,4,Outpatient Clinic,factor
+dispatch_location,5,Emergency Department (ED),factor
+dispatch_location,6,Medical Hospital,factor
+dispatch_location,7,School,factor
+dispatch_location,8,Jail,factor
+dispatch_location,9,Other,factor
+reason_for_dispatch1,3,Agitation or disruptive behavior,factor
+reason_for_dispatch1,1,Adult interpersonal conflict or violence (protected category),factor
+reason_for_dispatch1,2,Adult interpersonal conflict or violence (not in protected category),factor
+reason_for_dispatch1,4,"Child abuse, neglect or exploitation",factor
+reason_for_dispatch1,5,Concerns about treatment engagement,factor
+reason_for_dispatch1,6,Difficulty functioning,factor
+reason_for_dispatch1,7,Disorganized behavior,factor
+reason_for_dispatch1,8,Harm/Risk of harm to others,factor
+reason_for_dispatch1,9,Harm/Risk of harm to self,factor
+reason_for_dispatch1,10,Harm/Risk of harm to property,factor
+reason_for_dispatch1,11,Peer difficulties,factor
+reason_for_dispatch1,20,Other social/interpersonal problems,factor
+reason_for_dispatch1,12,Paranoia,factor
+reason_for_dispatch1,13,Running away,factor
+reason_for_dispatch1,14,Needing social services,factor
+reason_for_dispatch1,15,Seeking mental health services,factor
+reason_for_dispatch1,16,Substance use,factor
+reason_for_dispatch1,17,Suicidality or suicide attempt,factor
+reason_for_dispatch1,18,Trauma,factor
+reason_for_dispatch1,19,Other,factor
+reason_for_dispatch2,3,Agitation or disruptive behavior,factor
+reason_for_dispatch2,1,Adult interpersonal conflict or violence (protected category),factor
+reason_for_dispatch2,2,Adult interpersonal conflict or violence (not in protected category),factor
+reason_for_dispatch2,4,"Child abuse, neglect or exploitation",factor
+reason_for_dispatch2,5,Concerns about treatment engagement,factor
+reason_for_dispatch2,6,Difficulty functioning,factor
+reason_for_dispatch2,7,Disorganized behavior,factor
+reason_for_dispatch2,8,Harm/Risk of harm to others,factor
+reason_for_dispatch2,9,Harm/Risk of harm to self,factor
+reason_for_dispatch2,10,Harm/Risk of harm to property,factor
+reason_for_dispatch2,20,Other social/interpersonal problems,factor
+reason_for_dispatch2,11,Peer difficulties,factor
+reason_for_dispatch2,12,Paranoia,factor
+reason_for_dispatch2,13,Running away,factor
+reason_for_dispatch2,14,Needing social services,factor
+reason_for_dispatch2,15,Seeking mental health services,factor
+reason_for_dispatch2,16,Substance use,factor
+reason_for_dispatch2,17,Suicidality or suicide attempt,factor
+reason_for_dispatch2,18,Trauma,factor
+reason_for_dispatch2,19,Other,factor
+reason_for_dispatch3,3,Agitation or disruptive behavior,factor
+reason_for_dispatch3,1,Adult interpersonal conflict or violence (protected category),factor
+reason_for_dispatch3,2,Adult interpersonal conflict or violence (not in protected category),factor
+reason_for_dispatch3,4,"Child abuse, neglect or exploitation",factor
+reason_for_dispatch3,5,Concerns about treatment engagement,factor
+reason_for_dispatch3,6,Difficulty functioning,factor
+reason_for_dispatch3,7,Disorganized behavior,factor
+reason_for_dispatch3,8,Harm/Risk of harm to others,factor
+reason_for_dispatch3,9,Harm/Risk of harm to self,factor
+reason_for_dispatch3,10,Harm/Risk of harm to property,factor
+reason_for_dispatch3,11,Peer difficulties,factor
+reason_for_dispatch3,20,Other social/interpersonal problems,factor
+reason_for_dispatch3,12,Paranoia,factor
+reason_for_dispatch3,13,Running away,factor
+reason_for_dispatch3,14,Needing social services,factor
+reason_for_dispatch3,15,Seeking mental health services,factor
+reason_for_dispatch3,16,Substance use,factor
+reason_for_dispatch3,17,Suicidality or suicide attempt,factor
+reason_for_dispatch3,18,Trauma,factor
+reason_for_dispatch3,19,Other,factor
+reason_for_dispatch4,3,Agitation or disruptive behavior,factor
+reason_for_dispatch4,1,Adult interpersonal conflict or violence (protected category),factor
+reason_for_dispatch4,2,Adult interpersonal conflict or violence (not in protected category),factor
+reason_for_dispatch4,4,"Child abuse, neglect or exploitation",factor
+reason_for_dispatch4,5,Concerns about treatment engagement,factor
+reason_for_dispatch4,6,Difficulty functioning,factor
+reason_for_dispatch4,7,Disorganized behavior,factor
+reason_for_dispatch4,8,Harm/Risk of harm to others,factor
+reason_for_dispatch4,9,Harm/Risk of harm to self,factor
+reason_for_dispatch4,10,Harm/Risk of harm to property,factor
+reason_for_dispatch4,11,Peer difficulties,factor
+reason_for_dispatch4,20,Other social/interpersonal problems,factor
+reason_for_dispatch4,12,Paranoia,factor
+reason_for_dispatch4,13,Running away,factor
+reason_for_dispatch4,14,Needing social services,factor
+reason_for_dispatch4,15,Seeking mental health services,factor
+reason_for_dispatch4,16,Substance use,factor
+reason_for_dispatch4,17,Suicidality or suicide attempt,factor
+reason_for_dispatch4,18,Trauma,factor
+reason_for_dispatch4,19,Other,factor
+reason_for_dispatch5,3,Agitation or disruptive behavior,factor
+reason_for_dispatch5,1,Adult interpersonal conflict or violence (protected category),factor
+reason_for_dispatch5,2,Adult interpersonal conflict or violence (not in protected category),factor
+reason_for_dispatch5,4,"Child abuse, neglect or exploitation",factor
+reason_for_dispatch5,5,Concerns about treatment engagement,factor
+reason_for_dispatch5,6,Difficulty functioning,factor
+reason_for_dispatch5,7,Disorganized behavior,factor
+reason_for_dispatch5,8,Harm/Risk of harm to others,factor
+reason_for_dispatch5,9,Harm/Risk of harm to self,factor
+reason_for_dispatch5,10,Harm/Risk of harm to property,factor
+reason_for_dispatch5,11,Peer difficulties,factor
+reason_for_dispatch5,20,Other social/interpersonal problems,factor
+reason_for_dispatch5,12,Paranoia,factor
+reason_for_dispatch5,13,Running away,factor
+reason_for_dispatch5,14,Needing social services,factor
+reason_for_dispatch5,15,Seeking mental health services,factor
+reason_for_dispatch5,16,Substance use,factor
+reason_for_dispatch5,17,Suicidality or suicide attempt,factor
+reason_for_dispatch5,18,Trauma,factor
+reason_for_dispatch5,19,Other,factor
+abuse_reported,1,Yes,factor
+abuse_reported,0,No,factor
+ems_scene,1,Yes,factor
+ems_scene,2,No,factor
+le_scene,1,Yes,factor
+le_scene,2,No,factor
+language_need_met,1,Yes,factor
+language_need_met,2,No,factor
+language_need_met,3,N/A,factor
+custody,1,Director's Custody,factor
+custody,2,Police Custody,factor
+custody,3,No Custody Required,factor
+custody,4,Hospital Hold,factor
+disposition,1,Remained in the Community,factor
+disposition,2,Arrest,factor
+disposition,3,Emergency Department,factor
+disposition,4,Crisis Walk-In Center,factor
+disposition,5,Sobering or Detox Facility,factor
+disposition,6,Respite,factor
+disposition,7,Other,factor
+disposition,8,Acute Care,factor
+services_72hour,7,Yes,factor
+services_72hour,1,Yes: within 72 hours,factor
+services_72hour,2,Yes: after 72 hours,factor
+services_72hour,8,No,factor
+services_72hour,3,No: hand off to another provider/system,factor
+services_72hour,4,No: no follow up needed,factor
+services_72hour,5,No: follow up declined/no engagement,factor
+ref_stabilization_services,6,No: Other,factor
+ref_stabilization_services,2,No,factor
+enr_stabilization_services,1,Yes,factor
+enr_stabilization_services,2,No,factor
+enr_stabilization_services,3,Unknown,factor

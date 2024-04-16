@@ -1,0 +1,1648 @@
+---
+title: "MCIS Data Exploration (Q2 + Q3)"
+date: "01-12-24"
+author: "OHSU DAETA Team"
+format: 
+  revealjs:
+    theme: moon
+    smaller: true
+editor: visual
+# page-layout: full
+# toc: true
+execute:
+  echo: false
+  message: false
+  warning: false
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(janitor)
+library(stringr)
+library(lubridate)
+library(redcapAPI)
+library(gt)
+
+knitr::opts_chunk$set(echo = F,
+                      message = F,
+                      warning = F)
+# load data
+redcap_url <- "https://octri.ohsu.edu/redcap/api/"
+mcis_token <- read_csv("~/Desktop/MCIS_MCSS/RCtok.csv") |> filter(project == "mcis")
+rcon <- redcapConnection(url=redcap_url, token=mcis_token$token[1])
+
+d <- tibble(exportRecordsTyped(rcon, batch_size = 500)) 
+```
+
+# Descriptives
+
+## Living Situation
+
+```{r}
+living_situation <- d |>
+  select(living_situation) |>
+  filter(!is.na(living_situation)) |>
+  mutate(living_situation_reduced = case_when(
+    grepl("Residential Facility", living_situation) ~ "Residential Facility",
+    grepl("Supportive Housing", living_situation) ~ "Supported Housing",
+    grepl("Private Residence", living_situation) ~ "Private Residence",
+    .default = living_situation
+    )) |>
+  count(living_situation_reduced = factor(living_situation_reduced)) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+living_situation_n <- living_situation |> 
+  filter(living_situation_reduced == "Total") |>
+  pull(n)
+
+living_situation |>
+  filter(living_situation_reduced != "Total") |>
+  ggplot(aes(x = fct_reorder(living_situation_reduced, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 300), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  ggtitle(str_glue('Living situation (Total = {living_situation_n})')) +
+  coord_flip()
+```
+
+## Primary Insurance
+
+```{r}
+prim_ins <- d |>
+  select(primary_insurance) |>
+  filter(!is.na(primary_insurance)) |>
+  count(primary_insurance = factor(primary_insurance)) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+prim_ins_n <- prim_ins |>
+  filter(primary_insurance == "Total") |>
+  pull(n)
+
+prim_ins |>
+  filter(primary_insurance != "Total") |>
+  ggplot(aes(x = fct_reorder(primary_insurance, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 200), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  ggtitle(str_glue('Primary Insurance (Total = {prim_ins_n})')) +
+  coord_flip()
+```
+
+## Caller Requesting Dispatch
+
+```{r}
+dis_req <- d |>
+  select(dispatch_requester) |>
+  filter(!is.na(dispatch_requester)) |>
+  count(dispatch_requester = factor(dispatch_requester)) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+dis_req_n <- dis_req |>
+  filter(dispatch_requester == "Total") |>
+  pull(n)
+
+dis_req |>
+  filter(dispatch_requester != "Total") |>
+  ggplot(aes(x = fct_reorder(dispatch_requester, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 150), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  ggtitle(str_glue('Dispatch Requester (Total = {dis_req_n})')) +
+  coord_flip()
+```
+
+## Dispatch Location
+
+```{r}
+dis_loc <- d |>
+  select(dispatch_location) |>
+  filter(!is.na(dispatch_location)) |>
+  count(dispatch_location = factor(dispatch_location)) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+dis_loc_n <- dis_loc |>
+  filter(dispatch_location == "Total") |>
+  pull(n)
+
+dis_loc |>
+  filter(dispatch_location != "Total") |>
+  ggplot(aes(x = fct_reorder(dispatch_location, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 275), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  ggtitle(str_glue('Dispatch Location (Total = {dis_req_n})')) +
+  coord_flip()
+```
+
+## Geographical Designation
+
+```{r}
+
+geo_loc <- d |>
+  select(geo_designation) |>
+  filter(!is.na(geo_designation)) |>
+  count(geo_designation = factor(geo_designation)) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+geo_loc_n <- geo_loc |>
+  filter(geo_designation == "Total") |>
+  pull(n)
+
+geo_loc |>
+  filter(geo_designation != "Total") |>
+  ggplot(aes(x = fct_reorder(geo_designation, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 275), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  ggtitle(str_glue('Geographical Location (Total = {geo_loc_n})')) +
+  coord_flip()
+```
+
+## Primary reason for Dispatch
+
+```{r}
+prim_dis <- d |>
+  select(reason_for_dispatch1) |>
+  filter(!is.na(reason_for_dispatch1)) |>
+  count(reason_for_dispatch1 = factor(reason_for_dispatch1)) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+prim_dis_n <- prim_dis |>
+  filter(reason_for_dispatch1 == "Total") |>
+  pull(n)
+
+prim_dis |>
+  filter(reason_for_dispatch1 != "Total") |>
+  ggplot(aes(x = fct_reorder(reason_for_dispatch1, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 200), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  ggtitle(str_glue('Primary Reason for Dispatch\n(Total = {prim_dis_n})')) +
+  coord_flip()
+```
+
+## Disposition
+
+```{r}
+dis <- d |>
+  select(disposition) |>
+  filter(!is.na(disposition)) |>
+  count(disposition = factor(disposition)) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+dis_n <- dis |>
+  filter(disposition == "Total") |>
+  pull(n)
+
+dis |>
+  filter(disposition != "Total") |>
+  ggplot(aes(x = fct_reorder(disposition, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 400), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  ggtitle(str_glue('Disposition (Total = {dis_n})')) +
+  coord_flip()
+```
+
+## Endpoint of Dispatch
+
+```{r}
+end_dis <- d |>
+  select(endpoint_dispatch) |>
+  filter(!is.na(endpoint_dispatch)) |>
+  count(endpoint_dispatch = factor(endpoint_dispatch)) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+end_dis_n <- end_dis |>
+  filter(endpoint_dispatch == "Total") |>
+  pull(n)
+
+end_dis |>
+  filter(endpoint_dispatch != "Total") |>
+  ggplot(aes(x = fct_reorder(endpoint_dispatch, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 375), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  ggtitle(str_glue('Endpoint of Dispatch (Total = {end_dis_n})')) +
+  coord_flip()
+```
+
+## Follow-up services received within 72 hours after the initial event?
+
+```{r}
+fu_serv <- d |>
+  select(services_72hour) |>
+  filter(!is.na(services_72hour)) |>
+  count(services_72hour = factor(services_72hour)) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+fu_serv_n <- fu_serv |>
+  filter(services_72hour == "Total") |>
+  pull(n)
+
+fu_serv |>
+  filter(services_72hour != "Total") |>
+  ggplot(aes(x = fct_reorder(services_72hour, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 150), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  ggtitle(str_glue('FU Services within 72 hours (Total = {fu_serv_n})')) +
+  coord_flip()
+```
+
+## Of those who were referred to SS, how many were enrolled?
+
+::: columns
+::: {.column width="70%"}
+```{r}
+ss_ref <- d |>
+  select(ref_stabilization_services, enr_stabilization_services) |>
+  filter(ref_stabilization_services == "Yes")
+
+ss_ref_counts <- ss_ref |>
+  count(enr_stabilization_services = factor(enr_stabilization_services))
+
+# number of those who were enrolled in SS after being referred
+ss_ref_n <- ss_ref_counts |> 
+  adorn_totals() |>
+  filter(enr_stabilization_services == "Total") |> 
+  pull(n)
+
+ss_ref_counts |>
+  mutate(pct = round(n/sum(n), 2) * 100) |>
+  adorn_totals(na.rm = F) |>
+  filter(enr_stabilization_services != "Total") |> 
+  ggplot(aes(x = fct_reorder(enr_stabilization_services, n), y = n)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 10), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab('') +
+  ylab('n') +
+  coord_flip() +
+  ggtitle(str_glue("SS referrals (Total = {ss_ref_n}) who were also enrolled in SS"),
+          subtitle = "(Missing values are omitted below but count toward the total n)")
+
+```
+:::
+
+::: {.column width="30%"}
+```{r}
+ss_ref |>
+  group_by(enr_stabilization_services) |>
+  count() |>
+  ungroup() |>
+  mutate(pct = round(n/sum(n), 2)) |>
+  gt()
+```
+:::
+:::
+
+## Response Ruling x Dispatch Location
+
+-   Is there any impact of `dispatch location` and whether or not responders satisfied OHA's `response rule`?
+
+```{r, echo=F, warning=F, message=F}
+dispatch_location_counts <- d |> 
+  select(mcis_team, 
+         contains("_to_"), 
+         contains("response"), 
+         `dispatch_location`) |>
+  filter(!is.na(response_rule) & !is.na(dispatch_location)) |>
+  count(dispatch_location) |> #response_rule) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+dispatch_location_n <- dispatch_location_counts |>
+  filter(dispatch_location == "Total") |>
+  pull(n)
+
+d |> 
+  select(mcis_team, 
+         contains("_to_"), 
+         contains("response"), 
+         `dispatch_location`) |>
+  filter(!is.na(response_rule) & !is.na(dispatch_location)) |>
+  count(dispatch_location, response_rule) |>
+  ggplot(aes(x = fct_reorder(dispatch_location, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = response_rule)) +
+  geom_text(data = dispatch_location_counts |> filter(dispatch_location != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 150), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Response Rule") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Dispatch Location by Response Ruling (Total = {dispatch_location_n})"))
+```
+
+## Response ruling x County
+
+-   Is there any impact of `county` on `response rule`?
+
+```{r}
+county_response_counts <- d |> 
+  select(mcis_team, 
+         contains("_to_"), 
+         contains("response"), 
+         `dispatch_location`) |>
+  filter(!is.na(response_rule) & !is.na(mcis_team)) |>
+  count(mcis_team) |> #response_rule) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+county_response_n <- county_response_counts |>
+  filter(mcis_team == "Total") |>
+  pull(n)
+
+d |> 
+  select(mcis_team, 
+         contains("_to_"), 
+         contains("response"), 
+         `dispatch_location`) |>
+  filter(!is.na(response_rule) & !is.na(mcis_team)) |>
+  count(mcis_team, response_rule) |>
+  ggplot(aes(x = fct_reorder(mcis_team, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = response_rule)) +
+  geom_text(data = county_response_counts |> filter(mcis_team != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 100), 
+            color = "darkgray", 
+            size = 2.5) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Response Rule") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("County by Response Ruling (Total = {county_response_n})"))
+```
+
+# Responder Pairs
+
+## Table {.scrollable}
+
+-   Empty values for `mc_responders_1` or `mc_responders_2` were coded as "None". Counts in the table refer to the number of responder pairs. Values in red indicate pairs where there is only one responder or pairs where a QMHP is not involved (e.g. peer-peer, peer-none).
+
+```{r, echo=F, warning=F, message=F}
+# Count of unique combination of responders per county
+resp_count <- d |>
+  mutate(across(contains("mc_responders"), as.character),
+         mc_responders_1 = if_else(is.na(mc_responders_1), "None", mc_responders_1),
+         mc_responders_2 = if_else(is.na(mc_responders_2), "None", mc_responders_2)) |> 
+  # filter(!is.na(mc_responders_2)) |>
+  # filter(!is.na(mc_responders_2) & mc_responders_2 != "None") |>
+  group_by(mcis_team) |>
+  mutate(
+    Combined = pmax(mc_responders_1, mc_responders_2) |> as.character() |>
+               paste(pmin(mc_responders_1, mc_responders_2) |> as.character(), sep = "\n")
+  ) |>
+  count(Combined) |> 
+  # arrange(mcis_team, desc(n)) |>
+  arrange(desc(Combined)) |>
+  ungroup()
+
+# total_n <- resp_count |> summarize(count = sum(n))
+
+resp_count_wide <- resp_count |>
+  rename("MCIS Team" = `mcis_team`,
+         "Response pair" = `Combined`) |> 
+  pivot_wider(names_from = "Response pair",
+              values_from = "n") |> 
+  arrange(`MCIS Team`) |>
+  mutate(across(.cols = everything(), .fns = ~replace_na(., replace = 0))) |>
+  rename(`QMHP\nMP` = `QMHP\nMedical Provider`,
+         `QMHA\nMP` = `QMHA\nMedical Provider`)
+
+actual_colnames <- colnames(resp_count_wide)
+
+desired_colnames <- actual_colnames |>
+  str_remove('(QMHP\n|QMHA\n)')
+
+names(desired_colnames) <- actual_colnames
+
+# title <- paste0('Counts of Responder Pairs (n = ', total_n, ")")
+title <- paste0('Counts of Responder Pairs')
+
+resp_count_wide |>
+  gt() |>
+  cols_label(.list = desired_colnames) |>
+  tab_spanner(
+     label = md('**QMHP (primary)**'),
+     columns = 2:8
+   ) |>
+  tab_spanner(
+     label = md('**QMHA (primary)**'),
+     columns = 9:14
+   ) |>
+  cols_label('MCIS Team'= "") |>
+  tab_header(
+    title = title
+  ) |>
+  data_color(
+    columns = c(6, 12, 15, 16, 17),
+    method = "numeric",
+    apply_to = "text",
+    #palette = "red"
+    colors = scales::col_numeric(
+       palette = c("red"),
+       domain = c(1, 1000)
+    ),
+  ) |>
+  sub_zero(zero_text = '') |>
+  opt_stylize(style = 4, color = 'gray') |>
+  tab_options(
+    table.width = pct(100),
+    table.align = 'left',
+    table.font.size = pct(80)
+  ) |>
+  as_raw_html()
+```
+
+## Questions
+
+```{r prop_two}
+resp_one_none <- resp_count |> 
+  filter(str_detect(Combined, "None")) |> 
+  summarize(total = sum(n))
+
+resp_two <- resp_count |> 
+  filter(!str_detect(Combined, "None")) |> 
+  summarize(total = sum(n))
+
+prop_two <- round(resp_two$total / (resp_two$total + resp_one_none$total), 2)
+```
+
+-   What is the proportion of dispatches that have two responders versus one (or zero)?
+    -   **Answer**: `r prop_two * 100`%
+
+```{r qmhp_prim}
+qmhp_prim <- resp_count |> 
+  filter(str_starts(Combined, "QMHP")) |>
+  summarize(total = sum(n)) |>
+  pull(total)
+```
+
+-   What is the proportion of responses where there is a QMHP is present?
+    -   **Answer**: `r round(qmhp_prim/nrow(d), 2) * 100`%
+
+```{r county_qmhp}
+qmhp_county <- resp_count |>
+  filter(str_starts(Combined, "QMHP"))
+
+total <- length(unique(d$mcis_team))
+qmhp_county_count <- length(unique(qmhp_county$mcis_team))
+```
+
+-   How many of the **counties** are using QMHPs versus none in at least one dispatch?
+    -   **Answer:** `r qmhp_county_count` / `r total`
+
+```{r}
+peer_county <- resp_count |>
+  filter(str_starts(Combined, "Peer"))
+
+peer_county_count <- peer_county |>
+  summarize(total = sum(n)) |>
+  pull(total)
+```
+
+-   How many dispatches are peer-peer pairs or solo peer?
+    -   **Answer:** `r round(peer_county_count/ nrow(d), 2) * 100` %
+-   Which counties are these?
+    -   **Answer:** `r unique(peer_county$mcis_team)`
+
+# Dispatch Times
+
+## Hour of Dispatch
+
+::: panel-tabset
+### Geographical Designation
+
+```{r}
+dt <- d |>
+  select(contains("datetime"), geo_designation, dispatch_location) |>
+  mutate(request_hour = hour(request_datetime),
+         dispatch_hour = hour(dispatch_datetime),
+         arrival_hour = hour(arrival_datetime),
+         engagement_hour = hour(engagement_datetime),
+         departure_hour = hour(departure_datetime))
+
+dispatch_hour_n <- dt |>
+  filter(!is.na(geo_designation)) |>
+  count(dispatch_hour) |>
+  adorn_totals() |>
+  filter(dispatch_hour == "Total") |>
+  pull(n)
+
+dt |>
+  # select(contains("hour")) |>
+  # pivot_longer(everything(), names_to = 'kind', values_to = 'hour') |>
+  filter(!is.na(geo_designation)) |>
+  mutate(geo_designation = factor(geo_designation)) |>
+  ggplot(aes(x = dispatch_hour)) +
+  geom_histogram() +
+  geom_vline(xintercept = 12, color = 'red') +
+  scale_x_continuous(breaks = seq(0, 23, by = 3)) +
+  ggtitle(str_glue("Hour of Dispatch by Geographical Designation (Total = {dispatch_hour_n})")) +
+  facet_wrap(~geo_designation, nrow = 3, ncol = 1) +
+  xlab("")
+```
+
+### Dispatch Location
+
+```{r}
+
+dispatch_loc_n <- dt |>
+  filter(!is.na(geo_designation)) |>
+  count(dispatch_location) |>
+  adorn_totals() |>
+  filter(dispatch_location == "Total") |>
+  pull(n)
+
+
+dt |>
+  # select(contains("hour")) |>
+  # pivot_longer(everything(), names_to = 'kind', values_to = 'hour') |>
+  filter(!is.na(dispatch_location)) |>
+  mutate(dispatch_location = factor(dispatch_location)) |>
+  ggplot(aes(x = dispatch_hour)) +
+  geom_histogram() +
+  geom_vline(xintercept = 12, color = 'red') +
+  scale_x_continuous(breaks = seq(0, 23, by = 3)) +
+  ggtitle(str_glue("Hour of Dispatch by Dispatch Location (Total = {dispatch_loc_n})")) +
+  facet_wrap(~dispatch_location) +
+  xlab("")
+```
+:::
+
+## Arrival to Dispatch
+
+::: panel-tabset
+### Geographical Designation
+
+```{r}
+arr_dis_geo_n <- d |>
+  filter(!is.na(dispatch_to_arrival) & dispatch_to_arrival >= 0 & dispatch_to_arrival < 300) |> 
+  filter(!is.na(geo_designation)) |>
+  count(dispatch_to_arrival) |>
+  adorn_totals() |>
+  filter(dispatch_to_arrival == "Total") |>
+  pull(n)
+
+
+
+d |>
+  filter(!is.na(dispatch_to_arrival) & dispatch_to_arrival >= 0 & dispatch_to_arrival < 300) |>
+  filter(!is.na(geo_designation)) |>
+  ggplot(aes(x = dispatch_to_arrival)) +
+  geom_histogram() +
+  facet_wrap(~geo_designation, scale = "free_y", nrow=3) +
+  xlab("Minutes") +
+  ggtitle(str_glue("Dispatch to Arrival Time in Minutes by Geographical Designation\n(Total = {arr_dis_geo_n})"))
+```
+
+### Dispatch Location
+
+```{r}
+arr_dis_disloc_n <- d |>
+  filter(!is.na(dispatch_to_arrival) & dispatch_to_arrival >= 0 & dispatch_to_arrival < 300) |> 
+  filter(!is.na(dispatch_location)) |>
+  count(dispatch_to_arrival) |>
+  adorn_totals() |>
+  filter(dispatch_to_arrival == "Total") |>
+  pull(n)
+
+d |>
+  filter(!is.na(dispatch_to_arrival) & dispatch_to_arrival >= 0 & dispatch_to_arrival < 300) |>
+  filter(!is.na(dispatch_location)) |>
+  ggplot(aes(x = dispatch_to_arrival)) +
+  geom_histogram() +
+  facet_wrap(~dispatch_location, scale = "free_y") +
+  xlab("Minutes") +
+  ggtitle(str_glue("Dispatch to Arrival Time in Minutes by Dispatch Location\n(Total = {arr_dis_disloc_n})"))
+```
+:::
+
+## Day of Dispatch
+
+::: panel-tabset
+### Geographical Designation
+
+```{r}
+
+wday_d <- d |>
+  select(contains("datetime"), geo_designation) |>
+  filter(!is.na(geo_designation)) |>
+  mutate(across(contains("datetime"), wday, .names = "{.col}_wday", label=T)) |>
+  filter(!is.na(dispatch_datetime_wday)) |>
+  count(dispatch_datetime_wday) |>
+  adorn_totals() 
+
+wday_n <- wday_d |>
+  filter(dispatch_datetime_wday == "Total") |>
+  pull(n)
+
+d |>
+  select(contains("datetime"), geo_designation) |>
+  filter(!is.na(geo_designation)) |>
+  mutate(across(contains("datetime"), wday, .names = "{.col}_wday", label=T)) |>
+  filter(!is.na(dispatch_datetime_wday)) |>
+  ggplot(aes(x = dispatch_datetime_wday)) +
+  geom_bar() +
+  ggtitle(str_glue("Day of Dispatch by Geographical Designation (Total = {wday_n})")) +
+  facet_wrap(~geo_designation, nrow = 3, ncol = 1) +
+  xlab("")
+```
+
+### Dispatch Location
+
+```{r}
+wday_disp_d <- d |>
+  select(contains("datetime"), dispatch_location) |>
+  filter(!is.na(dispatch_location)) |>
+  mutate(across(contains("datetime"), wday, .names = "{.col}_wday", label=T)) |>
+  filter(!is.na(dispatch_datetime_wday)) |>
+  count(dispatch_datetime_wday) |>
+  adorn_totals() 
+
+wday_disp_n <- wday_disp_d |>
+  filter(dispatch_datetime_wday == "Total") |>
+  pull(n)
+
+d |>
+  select(contains("datetime"), dispatch_location) |>
+  filter(!is.na(dispatch_location)) |>
+  mutate(across(contains("datetime"), wday, .names = "{.col}_wday", label=T)) |>
+  filter(!is.na(dispatch_datetime_wday)) |>
+  ggplot(aes(x = dispatch_datetime_wday)) +
+  geom_bar() +
+  ggtitle(str_glue("Day of Dispatch by Dispatch Location (Total = {wday_disp_n})")) +
+  facet_wrap(~dispatch_location) +
+  xlab("")
+```
+:::
+
+# Rank programs based on average time from dispatch to arrival?
+
+## Distribution of Dispatch to Arrival Time in Minutes
+
+```{r}
+
+darr_n <- d |>
+  filter(!is.na(dispatch_to_arrival) & dispatch_to_arrival >= 0 & dispatch_to_arrival < 300) |>
+  filter(!is.na(dispatch_location)) |>
+  count(dispatch_to_arrival) |>
+  adorn_totals() |>
+  filter(dispatch_to_arrival == "Total") |>
+  pull(n)
+  
+  
+d |>
+  filter(!is.na(dispatch_to_arrival) & dispatch_to_arrival >= 0 & dispatch_to_arrival < 300) |>
+  filter(!is.na(dispatch_location)) |>
+  ggplot(aes(x = dispatch_to_arrival)) +
+  geom_histogram() +
+  facet_wrap(~mcis_team) +
+  xlab('Minutes') + ylab('') +
+  ggtitle(str_glue("Dispatch to Arrival Time in Minutes by Program (Total = n{darr_n})"))
+```
+
+## Expected Dispatch to Arrival Time by County
+
+::: panel-tabset
+### Median
+
+```{r}
+d |>
+  filter(!is.na(dispatch_to_arrival) & dispatch_to_arrival >= 0 & dispatch_to_arrival < 300) |>
+  filter(!is.na(dispatch_location)) |>
+  group_by(mcis_team) |>
+  summarize(med_disp_to_arr = median(dispatch_to_arrival)) |>
+  ungroup() |>
+  left_join(d |> select(mcis_team, geo_designation), by = "mcis_team") |> 
+  arrange(med_disp_to_arr) |>
+  ggplot(aes(x = reorder(mcis_team, -med_disp_to_arr), y = med_disp_to_arr)) +
+  geom_point() +
+  xlab('Minutes') + ylab('') +
+  theme(legend.title=element_blank()) +
+  scale_y_continuous(breaks = c(0, 5, 10, 15, 20, 25)) +
+  ggtitle("Median Dispatch to Arrival Time by County") +
+  coord_flip()
+```
+
+### Mean
+
+```{r}
+d |>
+  filter(!is.na(dispatch_to_arrival) & dispatch_to_arrival >= 0 & dispatch_to_arrival < 300) |>
+  filter(!is.na(dispatch_location)) |>
+  group_by(mcis_team) |>
+  summarize(mean_disp_to_arr = mean(dispatch_to_arrival)) |>
+  ungroup() |>
+  left_join(d |> select(mcis_team, geo_designation), by = "mcis_team") |> 
+  arrange(mean_disp_to_arr) |>
+  ggplot(aes(x = reorder(mcis_team, -mean_disp_to_arr), y = mean_disp_to_arr)) +
+  geom_point() +
+  xlab('Minutes') + ylab('') +
+  theme(legend.title=element_blank()) +
+  scale_y_continuous(breaks = c(0, 10, 20, 30, 40, 50, 60)) +
+  ggtitle("Mean Dispatch to Arrival Time by County") +
+  coord_flip()
+```
+:::
+
+# Additional analysis requests
+
+## Director's Custody and Police holds with Respect to Law Enforcement or EMS involvement
+
+```{r}
+dc_le_count <- d |> 
+  filter(!is.na(custody) & !is.na(ems_scene)) |>
+  count(custody) |> #response_rule) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+dc_le_count_n <- dc_le_count |>
+  filter(custody == "Total") |>
+  pull(n)
+
+d |> 
+  filter(!is.na(custody) & !is.na(ems_scene)) |>
+  count(custody, ems_scene) |>
+  ggplot(aes(x = fct_reorder(custody, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = ems_scene)) +
+  geom_text(data = dc_le_count |> filter(custody != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 375), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "EMS on Scene") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Custody Status by EMS on Scene (Total = {dc_le_count_n})"))
+
+```
+
+## Physician Hold to responses in the ED?
+
+```{r}
+ed_c_count <- d |> 
+  filter(!is.na(custody) & !is.na(dispatch_location)) |>
+  count(dispatch_location) |> #response_rule) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+ed_c_n <- ed_c_count |>
+  filter(dispatch_location == "Total") |>
+  pull(n)
+
+d |> 
+  filter(!is.na(custody) & !is.na(dispatch_location)) |>
+  mutate(dispatch_location = as.factor(dispatch_location),
+         custody = as.factor(custody)) |>
+  count(dispatch_location, custody) |>
+  ggplot(aes(x = fct_reorder(dispatch_location, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = custody)) +
+  geom_text(data = ed_c_count |> filter(dispatch_location != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 300), 
+            color = "darkgray", 
+            size = 2.5) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Custody") +
+  theme(legend.position = "right") +
+  coord_flip() +
+  ggtitle(str_glue("Custody Status by Dispatch Location (Total = {ed_c_n})"))
+```
+
+## Law enforcement involvement and geographic location
+
+```{r}
+le_geo_count <- d |> 
+  filter(!is.na(le_scene) & !is.na(geo_designation)) |>
+  count(geo_designation) |> #response_rule) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+le_geo_count_n <- le_geo_count |>
+  filter(geo_designation == "Total") |>
+  pull(n)
+
+d |> 
+  filter(!is.na(le_scene) & !is.na(geo_designation)) |>
+  count(geo_designation, le_scene) |>
+  ggplot(aes(x = fct_reorder(geo_designation, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = le_scene)) +
+  geom_text(data = le_geo_count |> filter(geo_designation != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 300), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "LE Scene") +
+  theme(legend.position = "right") +
+  coord_flip() +
+  ggtitle(str_glue("Geographical Designation by LE on scene (Total = {le_geo_count_n})"))
+```
+
+## Demographics of individual in crisis and law enforcement involvement
+
+```{r}
+le_inv <- d |>
+  filter(!is.na(le_scene))
+```
+
+::: panel-tabset
+### Age
+
+```{r}
+age_n <- le_inv |>
+  count(age) |>
+  adorn_totals() |>
+  filter(age == "Total") |>
+  pull(n)
+  
+  
+le_inv |>
+  ggplot(aes(x = age)) +
+  geom_density(aes(fill = le_scene), alpha = 0.5) +
+  labs(fill = "LE Scene") +
+  ggtitle(str_glue("Law Enforcement Involved x Age (Total = {age_n})"))
+
+```
+
+### Gender
+
+```{r}
+gender_count <- le_inv |>
+  filter(!is.na(le_scene) & !is.na(gender)) |>
+  count(gender) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+  
+gender_n <- gender_count |>
+  filter(gender == "Total") |>
+  pull(n)
+  
+le_inv |>
+  filter(!is.na(le_scene) & !is.na(gender)) |>
+  count(gender, le_scene) |>
+  ggplot(aes(x = fct_reorder(gender, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = le_scene)) +
+  geom_text(data = gender_count |> filter(gender != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 250), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "LE Scene") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Gender by LE on scene (Total = {gender_n})"))
+```
+
+### Sexual Orientation
+
+```{r}
+sex_count <- le_inv |>
+  filter(!is.na(le_scene) & !is.na(sexual_orientation)) |>
+  count(sexual_orientation) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+  
+sex_n <- sex_count |>
+  filter(sexual_orientation == "Total") |>
+  pull(n)
+  
+le_inv |>
+  filter(!is.na(le_scene) & !is.na(sexual_orientation)) |>
+  count(sexual_orientation, le_scene) |>
+  ggplot(aes(x = fct_reorder(sexual_orientation, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = le_scene)) +
+  geom_text(data = sex_count |> filter(sexual_orientation != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 250), 
+            color = "darkgray", 
+            size = 3.5) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "LE Scene") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Sexual Orientation by LE on scene (Total = {sex_n})"))
+```
+
+### Primary Race
+
+```{r}
+race_count <- le_inv |>
+  filter(!is.na(le_scene) & !is.na(race_ethnicity1)) |>
+  count(race_ethnicity1) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+  
+race_n <- race_count |>
+  filter(race_ethnicity1 == "Total") |>
+  pull(n)
+  
+le_inv |>
+  filter(!is.na(le_scene) & !is.na(race_ethnicity1)) |>
+  count(race_ethnicity1, le_scene) |>
+  ggplot(aes(x = fct_reorder(race_ethnicity1, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = le_scene)) +
+  geom_text(data = race_count |> filter(race_ethnicity1 != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 200), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "LE Scene") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Primary Race by LE on scene (Total = {race_n})"))
+```
+
+### Living Situation
+
+```{r}
+liv_count <- le_inv |>
+  filter(!is.na(le_scene) & !is.na(living_situation)) |>
+  count(living_situation) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+  
+liv_n <- liv_count |>
+  filter(living_situation == "Total") |>
+  pull(n)
+  
+le_inv |>
+  filter(!is.na(le_scene) & !is.na(living_situation)) |>
+  count(living_situation, le_scene) |>
+  ggplot(aes(x = fct_reorder(living_situation, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = le_scene)) +
+  geom_text(data = liv_count |> filter(living_situation != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 200), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "LE Scene") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Living Situation by LE on scene (Total = {race_n})"))
+```
+
+### Primary Insurance
+
+```{r}
+prim_ins_count <- le_inv |>
+  filter(!is.na(le_scene) & !is.na(primary_insurance)) |>
+  count(primary_insurance) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+  
+prim_ins_n <- prim_ins_count |>
+  filter(primary_insurance == "Total") |>
+  pull(n)
+  
+le_inv |>
+  filter(!is.na(le_scene) & !is.na(primary_insurance)) |>
+  count(primary_insurance, le_scene) |>
+  ggplot(aes(x = fct_reorder(primary_insurance, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = le_scene)) +
+  geom_text(data = prim_ins_count |> filter(primary_insurance != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 150), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "LE Scene") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Living Situation by LE on scene (Total = {prim_ins_n})"))
+```
+:::
+
+## Language need met
+
+```{r}
+lang <- d |> filter(!is.na(language_need_met) & language_need_met != "N/A")
+```
+
+::: panel-tabset
+### Geographic Location
+
+```{r}
+geo_lang_count <- lang |>
+  filter(!is.na(language_need_met) & !is.na(geo_designation)) |>
+  count(geo_designation) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+  
+geo_lang_n <- geo_lang_count |>
+  filter(geo_designation == "Total") |>
+  pull(n)
+  
+lang |>
+  filter(!is.na(language_need_met) & !is.na(geo_designation)) |>
+  count(geo_designation, language_need_met) |>
+  ggplot(aes(x = fct_reorder(geo_designation, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = language_need_met)) +
+  geom_text(data = geo_lang_count |> filter(geo_designation != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 150), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Lang Met") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Geographical Designation by Language Need Met (Total = {geo_lang_n})"))
+```
+
+### Call times
+
+```{r}
+request_hour_n <- lang |>
+  filter(request_to_dispatch >= 0 & request_to_dispatch < 300) |>
+  mutate(request_hour = hour(request_datetime),
+         dispatch_hour = hour(dispatch_datetime),
+         arrival_hour = hour(arrival_datetime),
+         engagement_hour = hour(engagement_datetime),
+         departure_hour = hour(departure_datetime)) |>
+  count(request_to_dispatch) |>
+  adorn_totals() |>
+  filter(request_to_dispatch == "Total") |>
+  pull(n)
+
+lang |>
+  filter(request_to_dispatch >= 0 & request_to_dispatch < 300) |>
+  mutate(request_hour = hour(request_datetime),
+         dispatch_hour = hour(dispatch_datetime),
+         arrival_hour = hour(arrival_datetime),
+         engagement_hour = hour(engagement_datetime),
+         departure_hour = hour(departure_datetime)) |>
+  ggplot(aes(x = request_to_dispatch)) +
+  geom_histogram(aes(fill = language_need_met)) +
+  # facet_wrap(~language_need_met) +
+  xlab('Minutes') +
+  ggtitle(str_glue("Language Need Met by Request to Dispatch (Total = {request_hour_n})"))
+
+```
+
+### Preferred Language
+
+```{r}
+cl_lang_count <- lang |>
+  filter(!is.na(language_need_met) & !is.na(client_language)) |>
+  mutate(client_language = if_else(str_detect(client_language, "Eng"), 
+                                   "English", client_language)) |>
+  count(client_language) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+  
+cl_lang_n <- cl_lang_count |>
+  filter(client_language == "Total") |>
+  pull(n)
+  
+lang |>
+  filter(!is.na(language_need_met) & !is.na(client_language)) |>
+  mutate(client_language = if_else(str_detect(client_language, "Eng"), 
+                                   "English", client_language)) |>
+  count(client_language, language_need_met) |>
+  ggplot(aes(x = fct_reorder(client_language, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = language_need_met)) +
+  geom_text(data = cl_lang_count |> filter(client_language != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 300), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Lang Met") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Client Language by Language Need Met (Total = {cl_lang_n})"))
+```
+
+### Response Time
+
+```{r}
+dispatch_hour_n <- lang |>
+  mutate(request_hour = hour(request_datetime),
+         dispatch_hour = hour(dispatch_datetime),
+         arrival_hour = hour(arrival_datetime),
+         engagement_hour = hour(engagement_datetime),
+         departure_hour = hour(departure_datetime)) |>
+  filter(!is.na(language_need_met) & !is.na(dispatch_hour)) |>
+  count(dispatch_hour) |>
+  adorn_totals() |>
+  filter(dispatch_hour == "Total") |>
+  pull(n)
+
+lang |>
+  mutate(request_hour = hour(request_datetime),
+         dispatch_hour = hour(dispatch_datetime),
+         arrival_hour = hour(arrival_datetime),
+         engagement_hour = hour(engagement_datetime),
+         departure_hour = hour(departure_datetime)) |>
+  ggplot(aes(x = dispatch_hour)) +
+  geom_histogram() +
+  xlab('') +
+  facet_wrap(~language_need_met) +
+  ggtitle(str_glue("Language Need Met x Dispatch RESPONSE (Total = {dispatch_hour_n})"))
+```
+
+### Response Day
+
+```{r}
+response_day_n <- lang |>
+  mutate(request_hour = hour(request_datetime),
+         dispatch_hour = hour(dispatch_datetime),
+         arrival_hour = hour(arrival_datetime),
+         engagement_hour = hour(engagement_datetime),
+         departure_hour = hour(departure_datetime),
+         dispatch_day = wday(dispatch_datetime, label = T)) |> 
+  filter(!is.na(dispatch_day)) |>
+  count(dispatch_day) |>
+  adorn_totals() |>
+  filter(dispatch_day == "Total") |>
+  pull(n)
+
+lang |>
+  mutate(request_hour = hour(request_datetime),
+         dispatch_hour = hour(dispatch_datetime),
+         arrival_hour = hour(arrival_datetime),
+         engagement_hour = hour(engagement_datetime),
+         departure_hour = hour(departure_datetime),
+         dispatch_day = wday(dispatch_datetime, label = T)) |> 
+  filter(!is.na(dispatch_day)) |>
+  ggplot(aes(x = dispatch_day)) +
+  geom_bar() +
+  xlab('') +
+  facet_wrap(~language_need_met) +
+  ggtitle(str_glue("Language Need Met x Dispatch DAY (Total = {response_day_n})"))
+
+```
+:::
+
+## Primary Reason for Dispatch vs Law Enforcement
+
+```{r}
+prim_re_count <- d |>
+  filter(!is.na(reason_for_dispatch1) & !is.na(le_scene)) |>
+  count(reason_for_dispatch1) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+prim_re_n <- prim_re_count |>
+  filter(reason_for_dispatch1 == "Total") |>
+  pull(n)
+
+d |>
+  filter(!is.na(reason_for_dispatch1) & !is.na(le_scene)) |>
+  count(reason_for_dispatch1, le_scene) |>
+  ggplot(aes(x = fct_reorder(reason_for_dispatch1,n), y = n)) +
+  geom_col(aes(fill = le_scene)) +
+  geom_text(data = prim_re_count |> filter(reason_for_dispatch1 != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 150), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "LE Scene") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Primary Reason Dispatch by\nLE on scene (Total = {prim_re_n})"))
+```
+
+## Youth Referral to SS
+
+```{r}
+# sex
+# gender
+# primary race
+# living situation
+# geographic designation
+# county?
+ref_ss <- d |> 
+  filter(!is.na(ref_stabilization_services) & age < 18)
+```
+
+::: panel-tabset
+### Age
+
+```{r}
+age_ss_n <- ref_ss |>
+  filter(!is.na(age)) |>
+  count(age) |>
+  adorn_totals() |>
+  filter(age == "Total") |>
+  pull(n)
+
+ref_ss |>
+  ggplot(aes(x = age)) +
+  geom_histogram(aes(fill = ref_stabilization_services)) +
+  ggtitle(str_glue("Age of children and SS Referral (Total = {age_ss_n})")) +
+  theme(legend.position = "bottom") +
+  labs(fill = "SS Referral")
+```
+
+### Gender
+
+```{r}
+
+gen_ss_count <- ref_ss |>
+  filter(!is.na(gender)) |>
+  count(gender) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+gen_ss_n <- gen_ss_count |>
+  filter(gender == "Total") |>
+  pull(n)
+
+ref_ss |>
+  filter(!is.na(gender)) |>
+  count(ref_stabilization_services, gender) |>
+  ggplot(aes(x = fct_reorder(gender, n), y = n)) +
+  geom_col(aes(fill = ref_stabilization_services)) +
+  geom_text(data = gen_ss_count |> filter(gender != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 20), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Referral SS") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Gender of children by SS Referral (Total = {gen_ss_n})"))
+```
+
+### Sexual Orientation
+
+```{r}
+sex_ss_count <- ref_ss |>
+  filter(!is.na(sexual_orientation)) |>
+  count(sexual_orientation) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+sex_ss_n <- sex_ss_count |>
+  filter(sexual_orientation == "Total") |>
+  pull(n)
+
+ref_ss |>
+  filter(!is.na(sexual_orientation)) |>
+  count(ref_stabilization_services, sexual_orientation) |>
+  ggplot(aes(x = fct_reorder(sexual_orientation, n), y = n)) +
+  geom_col(aes(fill = ref_stabilization_services)) +
+  geom_text(data = sex_ss_count |> filter(sexual_orientation != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 30), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Referral SS") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Sexual Orientation by SS Referral (Total = {gen_ss_n})"))
+```
+
+### Primary Race
+
+```{r}
+race_ss_count <- ref_ss |>
+  filter(!is.na(race_ethnicity1)) |>
+  count(race_ethnicity1) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+race_ss_n <- race_ss_count |>
+  filter(race_ethnicity1 == "Total") |>
+  pull(n)
+
+ref_ss |>
+  filter(!is.na(race_ethnicity1)) |>
+  count(ref_stabilization_services, race_ethnicity1) |>
+  ggplot(aes(x = fct_reorder(race_ethnicity1, n), y = n)) +
+  geom_col(aes(fill = ref_stabilization_services)) +
+  geom_text(data = race_ss_count |> filter(race_ethnicity1 != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 20), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Referral SS") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Primary Race/Ethnicity by Referral to SS (Total = {race_ss_n})"))
+```
+
+### Living Situation
+
+```{r}
+liv_ss_count <- ref_ss |>
+  filter(!is.na(living_situation)) |>
+  count(living_situation) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+liv_ss_n <- liv_ss_count |>
+  filter(living_situation == "Total") |>
+  pull(n)
+
+ref_ss |>
+  filter(!is.na(living_situation)) |>
+  count(ref_stabilization_services, living_situation) |>
+  ggplot(aes(x = fct_reorder(living_situation, n), y = n)) +
+  geom_col(aes(fill = ref_stabilization_services)) +
+  geom_text(data = liv_ss_count |> filter(living_situation != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 30), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Referral SS") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Living Situation by Referral to SS (Total = {liv_ss_n})"))
+```
+
+### Primary Insurance
+
+```{r}
+ins_ss_count <- ref_ss |>
+  filter(!is.na(primary_insurance)) |>
+  count(primary_insurance) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+ins_ss_n <- ins_ss_count |>
+  filter(primary_insurance == "Total") |>
+  pull(n)
+
+ref_ss |>
+  filter(!is.na(primary_insurance)) |>
+  count(ref_stabilization_services, primary_insurance) |>
+  ggplot(aes(x = fct_reorder(primary_insurance, n), y = n)) +
+  geom_col(aes(fill = ref_stabilization_services)) +
+  geom_text(data = ins_ss_count |> filter(primary_insurance != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 25), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Referral SS") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Primary Insurance by Referral to SS (Total = {ins_ss_n})"))
+```
+:::
+
+## IDD Status
+
+```{r}
+idd_ss_count <- ref_ss |>
+  filter(!is.na(idd_status)) |>
+  count(idd_status) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+idd_ss_n <- idd_ss_count |>
+  filter(idd_status == "Total") |>
+  pull(n)
+
+ref_ss |>
+  filter(!is.na(idd_status)) |>
+  count(ref_stabilization_services, idd_status) |>
+  ggplot(aes(x = fct_reorder(idd_status, n), y = n)) +
+  geom_col(aes(fill = ref_stabilization_services)) +
+  geom_text(data = idd_ss_count |> filter(idd_status != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 25), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Referral SS") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("IDD Status by Referral to SS (Total = {idd_ss_n})"))
+```
+
+## Language Need Met
+
+```{r}
+lan_ss_count <- ref_ss |>
+  filter(!is.na(language_need_met) & language_need_met != "N/A") |>
+  count(language_need_met) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+lan_ss_n <- lan_ss_count |>
+  filter(language_need_met == "Total") |>
+  pull(n)
+
+ref_ss |>
+  filter(!is.na(language_need_met) & language_need_met != "N/A") |>
+  count(ref_stabilization_services, language_need_met) |>
+  ggplot(aes(x = fct_reorder(language_need_met, n), y = n)) +
+  geom_col(aes(fill = ref_stabilization_services)) +
+  geom_text(data = lan_ss_count |> filter(language_need_met != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 25), 
+            color = "darkgray", 
+            size = 3) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Referral SS") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  ggtitle(str_glue("Language Need Met by Referral to SS (Total = {lan_ss_n})"))
+```
+
+## Dispatch Location by Rurality
+
+```{r}
+jail_rur_count <- d |> 
+  filter(!is.na(dispatch_location) & !is.na(geo_designation)) |>
+  # filter(dispatch_location == "Jail") |>
+  count(dispatch_location) |> #response_rule) |>
+  mutate(pct = round(prop.table(n), 3) * 100) |>
+  adorn_totals()
+
+jail_count_n <- ed_c_count |>
+  filter(dispatch_location == "Total") |>
+  pull(n)
+
+d |> 
+  filter(!is.na(dispatch_location) & !is.na(geo_designation)) |>
+  count(dispatch_location, geo_designation) |>
+  ggplot(aes(x = fct_reorder(dispatch_location, n), y = n)) +
+  geom_bar(stat = "identity", aes(fill = geo_designation)) +
+  geom_text(data = jail_rur_count |> filter(dispatch_location != "Total"),
+            aes(label = paste0(pct, "%")),
+            position = position_nudge(y = 200), 
+            color = "darkgray", 
+            size = 2.5) +
+  xlab("") +
+  ylab("n") +
+  labs(fill = "Custody") +
+  theme(legend.position = "right") +
+  coord_flip() +
+  ggtitle(str_glue("Dispatch Location by Rurality (Total = {jail_count_n})"))
+```
+
+# Beth Qs
+
+```{r}
+mcis <- readxl::read_xlsx("2023_Q2-Q4_Tableau Data.xlsx")
+mcss <- readxl::read_xlsx("2023-Q2-Q4-SS-Tableau Data.xlsx")
+```
+
+-   How many total initial MCIS responses were for youth ages 0-20 in Q3 and Q4?\
+    **For youth ages 0-20, there were 1124 MCIS responses in Q3 and 1247 MCIS responses in Q4.**
+
+```{r}
+mcis |>
+  filter(age <= 20 & quarter != "Q2") |>
+  count(quarter)
+```
+
+-   How many CMHPS/Counties submitted MCIS data in Q3 and Q4?\
+    **Q3: 36 counties; Q4: 32 counties**
+
+```{r}
+mcis_beth <- mcis |>
+  filter(age <= 20 & quarter != "Q2")
+  
+mcis_beth |>
+  group_by(quarter) |>
+  summarize(unique_values = n_distinct(mcis_team))
+```
+
+-   What CMHPs/Counties submitted SS data for Q3? Q4? 
+
+| Q3                              | Q4                              |
+|---------------------------------|---------------------------------|
+| Adapt (Douglas)                 | Adapt (Douglas)                 |
+| Benton County Health Department | Adapt (Curry)                   |
+| Catholic Community Services     | Benton County Health Department |
+| Youth Villages                  | Catholic Community Services     |
+|                                 | Coos Health and Wellness        |
+|                                 | Linn County Mental Health       |
+|                                 | Marion County Health Department |
+|                                 | Youth Villages                  |
+
+```{r}
+mcss_beth <- mcss |>
+  mutate(dob = as_date(dob),
+         age_updated = year("2023-12-31") - year(dob)) |>
+  filter(quarter != "Q2" & !is.na(age_updated) & age_updated <= 20)
+  
+mcss_beth |>
+  group_by(quarter) |>
+  count(ss_team)
+```
+
+-   Do we know how many youth were enrolled in SS services during Q3 and Q4?
+
+Youth in MCIS who were enrolled in SS services---\
+Q3: 66\
+Q4: 103
+
+```{r}
+mcis_beth |>
+  filter(enr_stabilization_services == "Yes") |>
+  group_by(quarter) |>
+  count(enr_stabilization_services)
+```
+
+-   Are we absolutely certain that these kids received ongoing SS services after the initial crisis response based on the data that we got (Do we only have referred to SS numbers and don't actually know if they get served? If so than I do not want to report it.)
+
+```{r}
+mcis_enr_ss <- mcis_beth |>
+  filter(enr_stabilization_services == "Yes") |>
+  select(legal_first_name, last_name, dob, mcis_team) |>
+  rename('first_name' = 'legal_first_name') |>
+  mutate(dob = as_date(dob))
+
+mcis_enr_ss
+```
+
+```{r}
+mcss_enr_ss <- mcss_beth |> 
+  select(first_name, last_name, dob, ss_team, intake_date) |>
+  mutate(dob = as_date(dob))
+
+mcis_enr_ss
+```
+
+```{r}
+mcss_enr_ss |>
+  inner_join(mcis_enr_ss, by = c("first_name", "last_name", "dob"))
+```
