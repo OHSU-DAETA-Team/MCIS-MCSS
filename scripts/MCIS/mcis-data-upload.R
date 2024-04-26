@@ -74,7 +74,7 @@ zip_codes <- read_xlsx("MCIS-MCSS-Code/assets/OR Zip Codes and Service Areas and
 # Initial data clean - the workhorse function #
 # # # # # # # # # # # # # # # # # # # # # # # # 
 
-mcis_clean(2023)
+mcis_clean(year = 2023)
 
 # combine separate spreadsheets for final clean
 
@@ -612,6 +612,32 @@ fin_tbl <- rowid_to_column(tbl) |>
                                          .default = sexual_orientation)) |>
   mutate(across(contains("_datetime"), as_datetime))
 
+cleaned_tbl <- convert_label_to_raw(fin_tbl, lookup) |>
+  mutate(dob = as_date(dob),
+         across(contains("_datetime"), as_datetime)) |>
+  select(-c(rowid, grp_id, age, complete))
+#####
+
+#skim_fin <- fin_tbl |> skimr::skim()
+#skim_cleaned <- cleaned_tbl |> skimr::skim()
+
+unique_values <- lapply(cleaned_tbl, unique)
+
+batch_size <- 500
+
+# Calculate the number of batches
+num_batches <- ceiling(nrow(cleaned_tbl) / batch_size)
+
+# Create batches and save as separate CSV files for upload
+for (i in 1:num_batches) {
+  start_index <- (i - 1) * batch_size + 1
+  end_index <- min(start_index + batch_size - 1, nrow(cleaned_tbl))
+  batch <- cleaned_tbl[start_index:end_index, ]
+  file_name <- paste0("data/00-redcap-upload/mcis/2023/batch_", i, "_mcis_upload.csv")
+  write_csv(batch, file_name, na = "")
+  cat("Batch", i, "saved as", file_name, "\n")
+}
+
 # Do quick spot check of values 
 
 # z <- lapply(fin_tbl |> select(-contains("date"),
@@ -640,48 +666,46 @@ fin_tbl <- rowid_to_column(tbl) |>
 
 # Upload to REDCap
 
-# fin_tbl |> mutate(across(everything(), as.character))
-
-library(redcapAPI)
-
-redcap_url <- "https://octri.ohsu.edu/redcap/api/"
-mcis_token <- read_csv("~/Desktop/MCIS_MCSS/RCtok.csv") |> filter(project == "mcis")
-
-rcon <- redcapConnection(url=redcap_url, token=mcis_token$token[1])
-
+# library(redcapAPI)
+# 
+# redcap_url <- "https://octri.ohsu.edu/redcap/api/"
+# mcis_token <- read_csv("~/Desktop/MCIS_MCSS/RCtok.csv") |> filter(project == "mcis")
+# 
+# rcon <- redcapConnection(url=redcap_url, token=mcis_token$token[1])
+# 
+# # fin_tbl |>
+# #   filter(quarter == "Q3") |>
+# #   slice(c(3950, 3966, 3983, 3984, 3985)) |>
+# #   select(mcis_team, reason_for_dispatch2) |>
+# #   View()
+# 
+# # fn <- exportFieldNames(rcon)
+# ## To delete records ##
+# 
+# r <- tibble(exportRecordsTyped(rcon, batch_size = 500))
+# deleteRecords(rcon, unique(r$record_id))
+# 
+# # IMPORT
+# 
+# importRecords(rcon,
+#               # CHANGE THIS - only upload data by quarter and year
+#               fin_tbl |> filter(quarter == "Q2"), # |> filter(mcis_team == "21" & quarter == "Q4"),
+#               overwriteBehavior = c("normal", "overwrite"), 
+#               batch.size = 500,
+#               returnData = F, # Set to F when ready to upload; set to T to check which values don't match
+#               force_auto_number = F,
+#               api_param = list(complete = T))
+# 
+# # EXPORT as XLSX to X Drive
+# 
 # fin_tbl |>
-#   filter(quarter == "Q3") |>
-#   slice(c(3950, 3966, 3983, 3984, 3985)) |>
-#   select(mcis_team, reason_for_dispatch2) |>
-#   View()
-
-# fn <- exportFieldNames(rcon)
-## To delete records ##
-
-r <- tibble(exportRecordsTyped(rcon, batch_size = 500))
-deleteRecords(rcon, unique(r$record_id))
-
-# IMPORT
-
-importRecords(rcon,
-              # CHANGE THIS - only upload data by quarter and year
-              fin_tbl |> filter(quarter == "Q2"), # |> filter(mcis_team == "21" & quarter == "Q4"),
-              overwriteBehavior = c("normal", "overwrite"), 
-              batch.size = 500,
-              returnData = F, # Set to F when ready to upload; set to T to check which values don't match
-              force_auto_number = F,
-              api_param = list(complete = T))
-
-# EXPORT as XLSX to X Drive
-
-fin_tbl |>
-  select(-c(rowid, grp_id, complete)) |>
-  write_csv("2023_mcis_upload.csv")
-
-r <- tibble(exportRecordsTyped(rcon, batch_size = 500))
-
-#x_path <- "~/../../private/tmp/nguphiliVolumes/OHSU/OHSU Shared/Restricted/SHARED/PSYCH/Child Psych Clinic/DAETA Team/MRSS and 988/MCIS Quarterly Reports/Tableau/"
-save_name <-"2023_Q2-Q4_Tableau Data.xlsx"
-# openxlsx::write.xlsx(r, paste0(x_path, save_name))
-
-openxlsx::write.xlsx(r, paste0(save_name))
+#   select(-c(rowid, grp_id, complete)) |>
+#   write_csv("2023_mcis_upload.csv")
+# 
+# r <- tibble(exportRecordsTyped(rcon, batch_size = 500))
+# 
+# #x_path <- "~/../../private/tmp/nguphiliVolumes/OHSU/OHSU Shared/Restricted/SHARED/PSYCH/Child Psych Clinic/DAETA Team/MRSS and 988/MCIS Quarterly Reports/Tableau/"
+# save_name <-"2023_Q2-Q4_Tableau Data.xlsx"
+# # openxlsx::write.xlsx(r, paste0(x_path, save_name))
+# 
+# openxlsx::write.xlsx(r, paste0(save_name))

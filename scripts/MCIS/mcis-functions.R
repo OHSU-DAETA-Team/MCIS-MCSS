@@ -129,3 +129,17 @@ mcis_clean <- function(year){
 #            value = !!sym(x)) |>
 #     unique()
 # }
+
+# Function to convert label values to raw values based on the lookup table
+convert_label_to_raw <- function(df, lookup_table) {
+  df_new <- df
+  for (col in colnames(df)) {
+    if (col %in% lookup_table$variable_name) {
+      look <- lookup_table[lookup_table$variable_name == col, ]
+      df_new[[col]] <- ifelse(df[[col]] %in% look$label, 
+                              look$value[match(df[[col]], look$label)], 
+                              df[[col]])
+    }
+  }
+  return(df_new)
+}

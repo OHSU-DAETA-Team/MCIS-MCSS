@@ -425,8 +425,53 @@ services_72hour,8,No,factor
 services_72hour,3,No: hand off to another provider/system,factor
 services_72hour,4,No: no follow up needed,factor
 services_72hour,5,No: follow up declined/no engagement,factor
-ref_stabilization_services,6,No: Other,factor
+services_72hour,6,No: Other,factor
+ref_stabilization_services,1,Yes,factor
 ref_stabilization_services,2,No,factor
 enr_stabilization_services,1,Yes,factor
 enr_stabilization_services,2,No,factor
 enr_stabilization_services,3,Unknown,factor
+quarter,1,Q1,factor
+quarter,2,Q2,factor
+quarter,3,Q3,factor
+quarter,4,Q4,factor
+mcis_county,1,Wasco,factor
+mcis_county,2,Marion,factor
+mcis_county,3,Washington,factor
+mcis_county,4,Clackamas,factor
+mcis_county,5,Multnomah,factor
+mcis_county,6,Hood River,factor
+mcis_county,7,Columbia,factor
+mcis_county,8,Sherman,factor
+mcis_county,9,Yamhill,factor
+mcis_county,10,Clatsop,factor
+mcis_county,11,Tillamook,factor
+mcis_county,12,Polk,factor
+mcis_county,13,Linn,factor
+mcis_county,14,Benton,factor
+mcis_county,15,Lincoln,factor
+mcis_county,16,Lane,factor
+mcis_county,17,Curry,factor
+mcis_county,18,Coos,factor
+mcis_county,19,Douglas,factor
+mcis_county,20,Klamath,factor
+mcis_county,21,Josephine,factor
+mcis_county,22,Jackson,factor
+mcis_county,23,Lake,factor
+mcis_county,24,Deschutes,factor
+mcis_county,25,Harney,factor
+mcis_county,26,Jefferson,factor
+mcis_county,27,Wheeler,factor
+mcis_county,28,Crook,factor
+mcis_county,29,Umatilla,factor
+mcis_county,30,Gilliam,factor
+mcis_county,31,Baker,factor
+mcis_county,32,Grant,factor
+mcis_county,33,Morrow,factor
+mcis_county,34,Union,factor
+mcis_county,35,Wallowa,factor
+mcis_county,36,Malheur,factor
+year,1,2023,factor
+year,2,2024,factor
+year,3,2025,factor
+year,4,2026,factor
