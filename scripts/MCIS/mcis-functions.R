@@ -2,7 +2,7 @@
 
 ## LOOKUP Table - for converting labels into numerically coded values
 
-lookup <- read_csv("MCIS-MCSS-Code/assets/MCIS/mcis-data-labels.csv")
+lookup <- read_csv("MCIS-MCSS-Code/assets/MCIS/lookup-mcis-data-labels.csv")
 
 ### variable names
 cols_vec <- unique(lookup$variable_name)
@@ -75,7 +75,7 @@ mcis_clean <- function(year){
             ### turn every value into character type for easier wrangling
             mutate(across(-contains("datetime"), as.character)) |> 
             ### recode the values in cols_vec 
-            mutate(across(all_of(cols_vec), recode_col)) |>
+            mutate(across(any_of(cols_vec), recode_col)) |>
             ### recode NULL values as empty cells
             mutate(across(everything(), ~ str_replace(., "NULL", ""))) |>
             ### recode empty cells as NA type
@@ -92,7 +92,7 @@ mcis_clean <- function(year){
           clean_df <- df |>
             rename(any_of(col_renames)) |>
             mutate(across(-contains("datetime"), as.character)) |>
-            mutate(across(all_of(cols_vec), recode_col)) |>
+            mutate(across(any_of(cols_vec), recode_col)) |>
             mutate(legal_first_name = str_extract(legal_first_name, ".*[A-Z].*[a-z].*"),
                    home_zip = str_extract(home_zip, "\\d{5}"))
         }
@@ -143,3 +143,4 @@ convert_label_to_raw <- function(df, lookup_table) {
   }
   return(df_new)
 }
+

@@ -74,12 +74,12 @@ zip_codes <- read_xlsx("MCIS-MCSS-Code/assets/OR Zip Codes and Service Areas and
 # Initial data clean - the workhorse function #
 # # # # # # # # # # # # # # # # # # # # # # # # 
 
-mcis_clean(year = 2023)
+mcis_clean(year = 2024)
 
 # combine separate spreadsheets for final clean
 
 tbl <-
-  list.files(path = "data/0-Cleaned Data/MCIS",
+  list.files(path = "data/0-Cleaned Data/MCIS/2024/",
              pattern = "*.xlsx",
              recursive = T, # set to True to loop through all years
              full.names = T) |>
